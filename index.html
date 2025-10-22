@@ -141,6 +141,11 @@
       <div style="flex:1;min-width:140px"><label>Roční motivační (Kč) — počítá se jen v 6/11</label><input id="annual_bonus" type="number" step="1" value="0"></div>
     </div>
 
+    <!-- ✨ NOVÉ: Fond vedoucího -->
+    <div class="row" style="width:100%">
+      <div style="flex:1;min-width:140px"><label>Fond vedoucího (Kč)</label><input id="fund_bonus" type="number" step="1" value="0"></div>
+    </div>
+
     <hr>
     <div class="h3wrap">
       <h3 style="margin:0">Průměrná náhrada (poslední 3 měsíce)</h3>
@@ -168,6 +173,10 @@
     <div id="net" class="result">💵 Čistá mzda (odhad): 0,00 Kč</div>
     <div id="meal" class="result">🍽️ Stravenky: 0,00 Kč</div>
     <div id="cafInfo" class="result">🎁 Cafeterie (mimo čistou): 0,00 Kč</div>
+
+    <!-- ✨ NOVÉ: roční součty (zobrazuje je app_v181.js, když existuje tento box) -->
+    <div id="yearSummary"></div>
+
   </aside>
 </div>
 
