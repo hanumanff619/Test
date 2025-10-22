@@ -26,16 +26,11 @@
     .grid{display:grid;grid-template-columns:1fr;gap:.9rem}
     @media(min-width:1100px){.grid{grid-template-columns:1.5fr 1fr}}
     .card{background:var(--panel);border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:1rem;position:relative}
-    /* override old position */
-.info {
-  position: absolute !important;
-  top: 10px !important;
-  right: 12px !important;
-  left: auto !important;font-size:.9rem;opacity:.92;cursor:pointer}
+    /* info ikona vpravo nahoře */
+    .info{position:absolute !important;top:10px !important;right:12px !important;left:auto !important;font-size:.9rem;opacity:.92;cursor:pointer}
     .tooltip{position:absolute;right:12px;left:auto;top:36px;max-width:380px;background:rgba(0,0,0,.86);
       border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:.6rem .7rem;font-size:.9rem;
-      opacity:0;pointer-events:none;transform:translateY(-4px);transition:opacity .18s ease, transform .18s ease;
-      transition-delay:.45s}
+      opacity:0;pointer-events:none;transform:translateY(-4px);transition:opacity .18s ease, transform .18s ease;transition-delay:.45s}
     .info:hover + .tooltip{opacity:1;pointer-events:auto;transform:translateY(0)}
     .tooltip b{color:#bfe1ff}
     #card-calendar{position:relative;overflow:hidden}
@@ -121,16 +116,6 @@
     <div class="h3wrap">
       <h3 style="margin:0">Mzda (vstupy)</h3>
       <div class="info" title="Nápověda">ℹ️</div>
-      <!-- Přidej do bloku Mzda (vstupy) -->
-<div>
-  <label>Roční motivační (Kč) — počítá se jen v 6/11</label>
-  <input id="patch_annual" type="number" inputmode="numeric" step="1" value="0">
-  <input id="st_yearBonus" type="number" value="0">
-</div>
-<div>
-  <label>Přesčas / Fond vedoucího (Kč)</label>
-  <input id="patch_fond" type="number" inputmode="numeric" step="1" value="0">
-</div>
       <div class="tooltip">Základ + příplatky. Dole vyplň „Průměrná náhrada“ (nebo ručně Kč/h). Používá se pro svátky a dovolenou.</div>
     </div>
 
@@ -152,7 +137,8 @@
     </div>
 
     <div class="row" style="width:100%">
-      <div style="flex:1;min-width:140px"><label>Přímé prémie (%)</label><input id="bonus_pct" type="number" step="0.1" value="10"></div> 
+      <div style="flex:1;min-width:140px"><label>Přímé prémie (%)</label><input id="bonus_pct" type="number" step="0.1" value="10"></div>
+      <div style="flex:1;min-width:140px"><label>Roční motivační (Kč) — počítá se jen v 6/11</label><input id="annual_bonus" type="number" step="1" value="0"></div>
     </div>
 
     <hr>
@@ -188,4 +174,3 @@
 <script src="app_v181.js?v=181"></script>
 </body>
 </html>
-<script src="patch_v182.js"></script>
