@@ -33,81 +33,45 @@
   // --- 2) Zjistit aktuální "zobrazený měsíc" pro roční bonus ---
   const CZ_MONTHS = ["leden","únor","březen","duben","květen","červen","červenec","srpen","září","říjen","listopad","prosinec"];
 
-  function monthIndexFromUI(){
-    // zkusíme běžné titulky; pokud nenajdeme, vezmeme aktuální měsíc
-    const cand = $('#monthLabel,.month-label,#monthTitle,.month-title,.calendar h2,.todayBox h2,.kal-h2');
-    if(cand){
-      const t = cand.textContent.toLowerCase();
-      for(let i=0;i<CZ_MONTHS.length;i++) if(t.includes(CZ_MONTHS[i])) return i; // 0..11
-    }
-    return new Date().getMonth();
-  }
+  // ----- robustnější zjištění měsíce -----
+const MONTHS_NORM = ["leden","unor","brezen","duben","kveten","cerven","cervenec","srpen","zari","rijen","listopad","prosinec"];
+const STRIP = s => String(s||"").toLowerCase()
+  .normalize("NFD").replace(/[\u0300-\u036f]/g,""); // bez diakritiky
 
-  // --- 3) Vstupy a perzistence (držíme si hodnoty) ---
-  const inpAnnual = $('#patch_annual');
-  const inpFond   = $('#patch_fond');
-
-  const LS_A = 'SMENAREK_PATCH_ANNUAL';
-  const LS_F = 'SMENAREK_PATCH_FOND';
-
-  if(inpAnnual) inpAnnual.value = localStorage.getItem(LS_A) ?? inpAnnual.value ?? '0';
-  if(inpFond)   inpFond.value   = localStorage.getItem(LS_F) ?? inpFond.value   ?? '0';
-
-  inpAnnual && inpAnnual.addEventListener('input', ()=> localStorage.setItem(LS_A, inpAnnual.value||'0'));
-  inpFond   && inpFond.addEventListener('input',   ()=> localStorage.setItem(LS_F, inpFond.value||'0'));
-
-  // --- 4) Samotné přičtení k výsledkům (po tvém výpočtu) ---
-  function applyPatch(){
-    const grossRow = findResultRow('Hrubá mzda');
-    const netRow   = findResultRow('Čistá mzda');
-    if(!grossRow || !netRow) return; // když výsledky ještě nejsou vykreslené
-
-    const g = readMoney(grossRow.valEl.textContent);
-    const n = readMoney(netRow.valEl.textContent);
-
-    const monthIdx = monthIndexFromUI(); // 0..11
-    const annualRaw = parseCZ(inpAnnual?.value);
-    const annual = (monthIdx===5 || monthIdx===10) ? annualRaw : 0; // 5=červen, 10=listopad
-
-    const fond = parseCZ(inpFond?.value);
-
-    const newGross = g.num + annual + fond;
-    const newNet   = n.num + annual + fond;
-
-    grossRow.valEl.textContent = fmtCZ(newGross, g.suffix);
-    netRow.valEl.textContent   = fmtCZ(newNet,   n.suffix);
-
-    // přidáme/aktualizujeme řádky v Přehledu (pokud tam máš container)
-    const summary = $('#summary');
-    if(summary){
-      const lineId = (id)=>`patch-${id}`;
-      function upsertLine(id, label, val){
-        let node = summary.querySelector(`#${lineId(id)}`);
-        const html = `<div id="${lineId(id)}">${label}: ${fmtCZ(val, g.suffix)}</div>`;
-        if(node) node.outerHTML = html; else summary.insertAdjacentHTML('beforeend', html);
-      }
-      upsertLine('overtime', 'Přesčas / Fond', fond);
-      upsertLine('annual',   'Roční (6/11)',   annual);
+function monthIndexFromUI(){
+  // 1) zkusíme text z okolí kalendáře
+  const containers = [
+    '#card-calendar','.calendar','.todayBox','#calendar',
+    '.head h2','.calendar h2','#monthLabel','.month-label',
+    '#monthTitle','.month-title'
+  ];
+  for(const sel of containers){
+    const el = document.querySelector(sel);
+    if(!el) continue;
+    const t = STRIP(el.textContent);
+    for(let i=0;i<MONTHS_NORM.length;i++){
+      if(t.includes(MONTHS_NORM[i])) return i; // 0..11
     }
   }
-
-  // --- 5) Spouštění po akcích (klik v kalendáři, změny vstupů, přepnutí měsíce…) ---
-  function wire(selector, type){
-    document.addEventListener(type, ev=>{
-      if(ev.target.closest(selector)) setTimeout(applyPatch, 0);
-    }, true);
+  // 2) jakýkoliv element s textem měsíce v dokumentu
+  const all = STRIP(document.body.textContent).slice(0,50000);
+  for(let i=0;i<MONTHS_NORM.length;i++){
+    if(all.includes(MONTHS_NORM[i])) return i;
   }
-  ['click','input','change'].forEach(t=>{
-    ['#calendar','.calendar','.day','input','select','#btnPrev','#btnNext','#btnToday','.btn']
-      .forEach(sel=>wire(sel,t));
-  });
+  // 3) poslední záchrana – současný měsíc zařízení
+  return new Date().getMonth();
+}
 
-  // při změně titulku měsíce (přepínání šipkami)
-  const titleNode = $('#monthLabel,.month-label,#monthTitle,.month-title,.calendar h2,.todayBox h2,.kal-h2');
-  if (titleNode && 'MutationObserver' in window){
-    const mo = new MutationObserver(()=>setTimeout(applyPatch,0));
-    mo.observe(titleNode,{childList:true,subtree:true,characterData:true});
-  }
+// … níže v souboru ponech vše stejné, jen v části s MutationObserverem nahraď „titleNode“ robustnější verzí:
+const titleCandidates = [
+  '#card-calendar','.calendar','.todayBox','#calendar',
+  '#monthLabel','.month-label','#monthTitle','.month-title','.head h2','.calendar h2'
+].map(s => document.querySelector(s)).filter(Boolean);
+
+if ('MutationObserver' in window && titleCandidates.length){
+  const mo = new MutationObserver(()=>setTimeout(applyPatch,0));
+  titleCandidates.forEach(n => mo.observe(n,{childList:true,subtree:true,characterData:true}));
+}
 
   // první pokus po načtení
   window.addEventListener('load', ()=> setTimeout(applyPatch, 0));
