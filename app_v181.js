@@ -295,3 +295,11 @@ function renderCalendar(){
 }
 
 renderCalendar();
+// přidej CSS pravidla dynamicky
+(function(){
+  const style = document.createElement('style');
+  style.textContent =
+    '#patch-row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}' +
+    '@media(max-width:520px){#patch-row{grid-template-columns:1fr}}';
+  document.head.appendChild(style);
+})();
