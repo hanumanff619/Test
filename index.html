@@ -65,7 +65,7 @@
       <div id="bg-layer"></div>
       <div class="body">
         <div class="info" title="Nápověda kalendáře">ℹ️</div>
-        <div class="tooltip">Klepnutím na den přepínáš: prázdno → D → N → V (12h) / prázdno → R → O → N → V (8h). Dnešek je orámovaný. Jmeniny &amp; státní svátky CZ jsou automaticky. Pozadí se mění dle režimu 12h/8h.</div>
+        <div class="tooltip">Klepnutím na den přepínáš: prázdno → D → N → V (12h) / prázdno → R → O → N → V (8h). Dnešek je orámovaný. Státní svátky CZ a jmeniny se zobrazují automaticky.</div>
 
         <div style="display:flex;gap:.5rem;align-items:center;justify-content:space-between;margin-bottom:.6rem">
           <div style="display:flex;gap:.5rem">
@@ -103,7 +103,7 @@
           <div><label>Víkend (Kč/h)</label><input id="st_b_weekend" type="number" inputmode="decimal" /></div>
           <div><label>Nepřetržitý provoz (Kč/h)</label><input id="st_b_cont" type="number" inputmode="decimal" /></div>
 
-          <!-- NOVÉ DVA VSTUPY -->
+          <!-- DOPLNĚNO v1.8.2 -->
           <div>
             <label>Roční motivační (Kč) <small id="annual_hint" style="opacity:.7"></small></label>
             <input id="st_yearly" type="number" inputmode="decimal" value="0" />
@@ -145,6 +145,12 @@
           <div><label>Hodiny M-3</label><input id="avg_hrs3" type="number" inputmode="decimal" /></div>
           <div><label>Ruční průměrná náhrada (Kč/h)</label><input id="avg_manual" type="number" inputmode="decimal" placeholder="nech prázdné = auto" /></div>
         </div>
+
+        <div class="hline"></div>
+
+        <label class="pill" style="gap:.6rem;align-items:center">
+          <input id="st_caf" type="checkbox" /> Cafeterie 1000 Kč (mimo čistou)
+        </label>
       </div>
     </section>
 
