@@ -1,26 +1,28 @@
 <!doctype html>
 <html lang="cs">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Směnářek</title>
-  <meta name="theme-color" content="#0e2a3a">
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="icons/icon-192.png">
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0e2a3a" />
   <style>
     :root{
       --bg:#0b2230; --panel:#112f43; --ink:#e9f6ff; --muted:#a6c5d6;
-      --good:#5bd39a; --sel:#1e78d7; --accent:#b38cff; --danger:#ff6b6b;
+      --good:#5bd39a; --sel:#1e78d7; --danger:#ff6b6b;
     }
-    *{box-sizing:border-box} html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Inter,Arial}
-    header{position:sticky;top:0;z-index:5;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,0));backdrop-filter:saturate(140%) blur(6px);padding:.75rem 1rem 0}
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Inter,Arial,sans-serif}
+    header{position:sticky;top:0;z-index:5;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,0));
+      padding:.75rem 1rem 0}
     .head{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:1rem}
     h1{margin:.25rem 0 1rem;font-size:2.25rem;font-weight:800;letter-spacing:.5px}
-    .btn{appearance:none;border:1px solid rgba(255,255,255,.2);background:transparent;color:var(--ink);border-radius:12px;padding:.55rem .9rem;font-weight:600}
-    .btn.primary{background:var(--sel);border-color:transparent}
-    .btn.ghost{background:rgba(255,255,255,.06)}
+    .btn{appearance:none;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:var(--ink);
+      border-radius:12px;padding:.55rem .9rem;font-weight:600;cursor:pointer}
     .wrap{max-width:1200px;margin:0 auto;padding:1rem}
-    .card{position:relative;background:var(--panel);border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+    .card{position:relative;background:var(--panel);border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,.06);margin-bottom:1rem}
     .card .body{padding:1rem}
     .hline{height:1px;background:rgba(255,255,255,.08);margin:.75rem 0}
     #bg-layer{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.25;filter:saturate(110%)}
@@ -30,27 +32,19 @@
     .calendar td .mark{position:absolute;right:.35rem;top:.35rem;background:rgba(0,0,0,.45);border-radius:10px;padding:.1rem .4rem;font-weight:700}
     .calendar td.today{box-shadow:inset 0 0 0 2px var(--sel)}
     .calendar td.selected{background:rgba(255,255,255,.05)}
-    .badge{display:inline-block;border:1px solid rgba(255,255,255,.25);padding:.25rem .5rem;border-radius:999px;margin:.25rem .25rem 0 0}
-    .grid{display:grid;gap:.7rem}
+    .pill{display:inline-flex;align-items:center;gap:.5rem;padding:.35rem .6rem;border-radius:999px;background:rgba(255,255,255,.08);font-weight:600}
     .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem}
     label{display:block;margin:.35rem 0 .25rem;color:var(--muted)}
     input,select{width:100%;background:#0b2130;border:1px solid rgba(255,255,255,.18);color:var(--ink);border-radius:10px;padding:.6rem .7rem}
-    .pill{display:inline-flex;align-items:center;gap:.5rem;padding:.35rem .6rem;border-radius:999px;background:rgba(255,255,255,.08);font-weight:600}
     .results .row{display:flex;justify-content:space-between;align-items:center;padding:.6rem .9rem;border-bottom:1px dashed rgba(255,255,255,.15)}
     .results .row:last-child{border-bottom:0}
-    .results .row.green{background:#0f3b2a}
-    .muted{color:var(--muted)}
     footer{padding:1rem 0 2.5rem;text-align:center;color:var(--muted)}
     footer strong{color:#cfe9ff}
     footer .brand b{color:#66aaff}
     footer .brand i{font-style:normal;color:#ff7bb8}
-    /* modal */
-    dialog{border:0;border-radius:20px;background:var(--panel);color:var(--ink);width:min(920px,96vw)}
-    dialog::backdrop{background:rgba(0,0,0,.6)}
-    .actions{display:flex;gap:.5rem;justify-content:flex-end;padding:1rem}
-    .flag{position:absolute;right:10px;bottom:10px;font-size:20px}
-    .info{position:absolute;top:10px;right:12px;font-size:.9rem;opacity:.92;cursor:help}
-    .tooltip{position:absolute;right:12px;top:36px;border:1px solid rgba(255,255,255,.2);border-radius:10px;background:#081824;padding:.6rem;opacity:0;pointer-events:none;transform:translateY(-6px);transition:.2s}
+    /* help ikonky vpravo */
+    .info{position:absolute;top:10px;right:12px;font-size:.9rem;opacity:.95;cursor:help}
+    .tooltip{position:absolute;right:12px;top:36px;border:1px solid rgba(255,255,255,.2);border-radius:10px;background:#081824;padding:.6rem;opacity:0;pointer-events:none;transform:translateY(-6px);transition:.2s;max-width:520px}
     .info:hover + .tooltip{opacity:1;pointer-events:auto;transform:none}
   </style>
 </head>
@@ -58,10 +52,10 @@
   <header>
     <div class="head">
       <div style="display:flex;align-items:center;gap:.8rem">
-        <img src="icons/icon-128.png" alt="" width="40" height="40" style="border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.35)">
+        <img src="icons/icon-192.png" alt="" width="40" height="40" style="border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.35)">
         <h1>Směnářek</h1>
       </div>
-      <button id="btnSettings" class="btn ghost">⚙️ Nastavení</button>
+      <button id="btnSettings" class="btn">⚙️ Nastavení</button>
     </div>
   </header>
 
@@ -70,17 +64,20 @@
     <section class="card" id="card-calendar">
       <div id="bg-layer"></div>
       <div class="body">
-        <div class="info">ℹ️</div>
-        <div class="tooltip">Klepnutím na den přepínáš prázdno → D → N → V → prázdno. Dnešek je orámovaný. Jmeniny &amp; státní svátky CZ jsou automaticky.</div>
+        <div class="info" title="Nápověda kalendáře">ℹ️</div>
+        <div class="tooltip">Klepnutím na den přepínáš: prázdno → D → N → V (12h) / prázdno → R → O → N → V (8h). Dnešek je orámovaný. Jmeniny &amp; státní svátky CZ jsou automaticky. Pozadí se mění dle režimu 12h/8h.</div>
 
         <div style="display:flex;gap:.5rem;align-items:center;justify-content:space-between;margin-bottom:.6rem">
           <div style="display:flex;gap:.5rem">
             <button class="btn" id="prevMonth">←</button>
             <button class="btn" id="nextMonth">→</button>
             <button class="btn" id="btnToday">Dnes</button>
-            <button class="btn" id="btnClear">Vymazat den</button>
+            <button class="btn" id="btnClear">Vymazat označení dne</button>
           </div>
-          <div class="pill"><span id="todayShift">Dnes: —</span> <span style="margin-left:.7rem">Svátek: <span id="todayName">—</span></span></div>
+          <div class="pill">
+            <span id="todayShift">Dnes: —</span>
+            <span style="margin-left:.7rem">Svátek: <span id="todayName">—</span></span>
+          </div>
         </div>
 
         <table class="calendar" id="cal"></table>
@@ -88,52 +85,46 @@
     </section>
 
     <!-- MZDA (VSTUPY) -->
-    <section class="card" style="margin-top:1rem">
+    <section class="card" id="card-inputs">
       <div class="body">
-        <div class="info">ℹ️</div>
-        <div class="tooltip">Dovolená = 11.25 h (12h režim) / 8 h (8h). Roční motivační se započítá jen v <b>listopadu</b> a <b>červnu</b>. Přesčas/Fond jde do <b>hrubé</b>.</div>
+        <div class="info" title="Nápověda k mzdě">ℹ️</div>
+        <div class="tooltip">
+          Dovolená = 11.25 h (12h režim) / 8 h (8h). Roční motivační se započítá pouze v <b>červnu</b> a <b>listopadu</b>. Přesčas/Fond jde do <b>hrubé</b>.
+        </div>
 
         <h3 style="margin:.2rem 0 1rem">Mzda (vstupy)</h3>
         <div class="grid2">
-          <div><label>Základní hodinovka</label><input id="st_wage" type="number" inputmode="decimal" placeholder="Kč/h"></div>
-          <div><label>Přímé prémie (%)</label><input id="st_bonusPct" type="number" inputmode="decimal" value="10"></div>
+          <div><label>Základní hodinovka</label><input id="st_wage" type="number" inputmode="decimal" placeholder="Kč/h" /></div>
+          <div><label>Přímé prémie (%)</label><input id="st_bonusPct" type="number" inputmode="decimal" value="10" /></div>
 
-          <div><label>Odpolední příplatek (Kč/h)</label><input id="st_b_evening" type="number" inputmode="decimal" placeholder="např. 10"></div>
-          <div><label>Noční příplatek (Kč/h)</label><input id="st_b_night" type="number" inputmode="decimal" placeholder="např. 25"></div>
+          <div><label>Odpolední příplatek (Kč/h)</label><input id="st_b_evening" type="number" inputmode="decimal" /></div>
+          <div><label>Noční příplatek (Kč/h)</label><input id="st_b_night" type="number" inputmode="decimal" /></div>
 
-          <div><label>Víkend (Kč/h)</label><input id="st_b_weekend" type="number" inputmode="decimal" placeholder="např. 35"></div>
-          <div><label>Nepřetržitý provoz (Kč/h)</label><input id="st_b_cont" type="number" inputmode="decimal" placeholder="např. 4"></div>
+          <div><label>Víkend (Kč/h)</label><input id="st_b_weekend" type="number" inputmode="decimal" /></div>
+          <div><label>Nepřetržitý provoz (Kč/h)</label><input id="st_b_cont" type="number" inputmode="decimal" /></div>
 
-          <div><label>Přesčas / Fond vedoucího (Kč)</label><input id="st_overtime" type="number" inputmode="decimal" value="0"></div>
-          <div><label>Roční motivační (Kč — auto 6 &amp; 11)</label><input id="st_yearly" type="number" inputmode="decimal" value="0"></div>
+          <!-- NOVÉ DVA VSTUPY -->
+          <div>
+            <label>Roční motivační (Kč) <small id="annual_hint" style="opacity:.7"></small></label>
+            <input id="st_yearly" type="number" inputmode="decimal" value="0" />
+          </div>
+          <div>
+            <label>Přesčas / Fond vedoucího (Kč)</label>
+            <input id="st_overtime" type="number" inputmode="decimal" value="0" />
+          </div>
 
-          <div><label>Dovolená (hod/den)</label><input id="st_vac_hours" type="number" inputmode="decimal" value="11.25"></div>
-          <div><label>Stravenky — hodnota / ks (Kč)</label><input id="st_meal_val" type="number" inputmode="decimal" value="110"></div>
-        </div>
+          <div><label>Dovolená (hod/den)</label><input id="st_vac_hours" type="number" inputmode="decimal" value="11.25" /></div>
+          <div><label>Stravenky — hodnota / ks (Kč)</label><input id="st_meal_val" type="number" inputmode="decimal" value="110" /></div>
 
-        <div class="hline"></div>
-
-        <h3 style="margin:.2rem 0 1rem">Průměrná náhrada (poslední 3 měsíce)</h3>
-        <div class="grid2">
-          <div><label>Čistá mzda M-1</label><input id="avg_net1" type="number" inputmode="decimal"></div>
-          <div><label>Hodiny M-1</label><input id="avg_hrs1" type="number" inputmode="decimal"></div>
-          <div><label>Čistá mzda M-2</label><input id="avg_net2" type="number" inputmode="decimal"></div>
-          <div><label>Hodiny M-2</label><input id="avg_hrs2" type="number" inputmode="decimal"></div>
-          <div><label>Čistá mzda M-3</label><input id="avg_net3" type="number" inputmode="decimal"></div>
-          <div><label>Hodiny M-3</label><input id="avg_hrs3" type="number" inputmode="decimal"></div>
-          <div><label>Ruční průměrná náhrada (Kč/h)</label><input id="avg_manual" type="number" inputmode="decimal" placeholder="nech prázdné = auto"></div>
-        </div>
-
-        <div class="hline"></div>
-
-        <div class="grid2">
-          <div><label>Režim</label>
+          <div>
+            <label>Režim</label>
             <select id="st_mode">
               <option value="12">12 h (D/N/V)</option>
               <option value="8">8 h (R/O/N/V)</option>
             </select>
           </div>
-          <div><label>Měna</label>
+          <div>
+            <label>Měna</label>
             <select id="st_ccy">
               <option value="Kč" selected>Kč</option>
               <option value="€">€</option>
@@ -141,41 +132,39 @@
             </select>
           </div>
         </div>
+
+        <div class="hline"></div>
+
+        <h3 style="margin:.2rem 0 1rem">Průměrná náhrada (poslední 3 měsíce)</h3>
+        <div class="grid2">
+          <div><label>Čistá mzda M-1</label><input id="avg_net1" type="number" inputmode="decimal" /></div>
+          <div><label>Hodiny M-1</label><input id="avg_hrs1" type="number" inputmode="decimal" /></div>
+          <div><label>Čistá mzda M-2</label><input id="avg_net2" type="number" inputmode="decimal" /></div>
+          <div><label>Hodiny M-2</label><input id="avg_hrs2" type="number" inputmode="decimal" /></div>
+          <div><label>Čistá mzda M-3</label><input id="avg_net3" type="number" inputmode="decimal" /></div>
+          <div><label>Hodiny M-3</label><input id="avg_hrs3" type="number" inputmode="decimal" /></div>
+          <div><label>Ruční průměrná náhrada (Kč/h)</label><input id="avg_manual" type="number" inputmode="decimal" placeholder="nech prázdné = auto" /></div>
+        </div>
       </div>
     </section>
 
     <!-- VÝSLEDKY -->
-    <section class="card" style="margin-top:1rem">
+    <section class="card" id="card-results">
       <div class="body">
         <h3 style="margin:.2rem 0 1rem">Přehled</h3>
-        <div id="summary" class="muted">—</div>
+        <div id="summary" style="color:var(--muted)">—</div>
         <div class="hline"></div>
+
         <h3 style="margin:.2rem 0 1rem">Výsledky</h3>
         <div class="results" id="results"></div>
       </div>
     </section>
 
     <footer>
-      <div class="brand"><strong>Směnářek 2.0</strong><br> <b>Hanuman</b> &nbsp;<span style="color:#ff4958">&amp;</span>&nbsp; <i>Terezka AI</i></div>
+      <div class="brand"><strong>Směnářek 2.0</strong><br><b>Hanuman</b> &nbsp;<span style="color:#ff4958">&amp;</span>&nbsp; <i>Terezka AI</i></div>
     </footer>
   </main>
 
-  <dialog id="dlg">
-    <div class="body">
-      <h3 style="margin:.2rem 0 1rem">Nastavení</h3>
-      <div class="grid2">
-        <div><label>Oběd (Kč) – denní</label><input id="st_lunch" type="number" inputmode="decimal" value="40"></div>
-        <div><label>Počet obědů (auto z D; lze upravit v poli níž)</label><input id="st_lunch_cnt" type="number" inputmode="numeric" value="0"></div>
-        <div><label>Stravenky za denní (ks)</label><input id="st_meal_d" type="number" value="1"></div>
-        <div><label>Stravenky za noční (ks)</label><input id="st_meal_n" type="number" value="2"></div>
-      </div>
-    </div>
-    <div class="actions">
-      <button class="btn" id="btnCancel">Zrušit</button>
-      <button class="btn primary" id="btnSave">Uložit</button>
-    </div>
-  </dialog>
-
-  <script src="app_v181.js"></script>
+  <script src="app_v182.js"></script>
 </body>
 </html>
