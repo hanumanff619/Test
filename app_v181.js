@@ -1,3 +1,14 @@
+// Bezpečné načtení čísla z inputu (podporuje i čárku)
+function num(id) {
+  const el = document.getElementById(id);
+  if (!el) return 0;
+  const v = (el.value ?? "").toString().trim().replace(',', '.');
+  const n = parseFloat(v);
+  return isNaN(n) ? 0 : n;
+}
+
+// Pokud někde v kódu voláš getNumber(...), udělej alias:
+const getNumber = getNumber || num;   // když není definovaná, použije se naše
 // Směnářek 1.8.1 – help icon right, single holiday mark, namedays online
 const MEAL_DEDUCT = 40, LUNCH_DEDUCT = 40, MEAL_INFO_VALUE = 110;
 const MAP12 = {D:'D 05:45–18:00', N:'N 17:45–06:00', V:'Dovolená'};
@@ -231,7 +242,9 @@ function calcPay(){
   }
   const mc=mealsCalc();
   const mealDeduct = mc.count*MEAL_DEDUCT, lunchDeduct=mc.lunches*LUNCH_DEDUCT, mealValue=mc.count*MEAL_INFO_VALUE;
-
+// --- Roční motivační bonus (jen v červnu a listopadu) ---
+const month = new Date().getMonth(); // 0 = leden, 10 = listopad
+const annualBonus = (month === 5 || month === 10) ? num("st_yearBonus") : 0;
   const gross = basePay+odpoPay+nightPay+wkPay+holPay+nepret+prime+vacPay + (state.annual_bonus||0);
   const social=gross*0.065, health=gross*0.045;
   const tax=Math.max(0,(gross-social-health)*0.15-2570);
