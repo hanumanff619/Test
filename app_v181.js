@@ -1,3 +1,11 @@
+// Bezpečné načtení čísla z inputu (podporuje i čárku)
+function num(id) {
+  const el = document.getElementById(id);
+  if (!el) return 0;
+  const v = (el.value ?? "").toString().trim().replace(",", ".");
+  const n = parseFloat(v);
+  return isNaN(n) ? 0 : n;
+}
 // Pokud někde v kódu voláš getNumber(...), udělej alias:
 const getNumber = getNumber || num;   // když není definovaná, použije se naše
 // Směnářek 1.8.1 – help icon right, single holiday mark, namedays online
