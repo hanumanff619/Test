@@ -10,7 +10,9 @@ if(!state.mode) state.mode='12';
 if(state.bonus_pct==null) state.bonus_pct=10;
 if(state.annual_bonus==null) state.annual_bonus=0;
 if(state.cafeteria_ok==null) state.cafeteria_ok=false;
+if(state.fund_bonus==null) state.fund_bonus=0;                  // ✨ NOVÉ: fond vedoucího (Kč/měsíc)
 if(!state.avg) state.avg={net1:null,h1:null,net2:null,h2:null,net3:null,h3:null,avg_manual:null};
+if(!state.yearSummary) state.yearSummary={};                     // ✨ NOVÉ: roční přehledy
 
 let current=new Date(), selectedDate=null;
 
@@ -102,6 +104,13 @@ function bindInputsOnce(){
   $('bonus_pct').oninput=()=>{ state.bonus_pct=nval($('bonus_pct').value); save(); calcPay(); };
   $('annual_bonus').value=state.annual_bonus; $('annual_bonus').oninput=()=>{ state.annual_bonus=nval($('annual_bonus').value); save(); calcPay(); };
 
+  // ✨ NOVÉ: vstup pro fond vedoucího (pokud existuje v HTML)
+  const fondEl = $('fund_bonus');
+  if (fondEl) {
+    fondEl.value = state.fund_bonus ?? 0;
+    fondEl.oninput = ()=>{ state.fund_bonus = nval(fondEl.value); save(); calcPay(); };
+  }
+
   const caf=$('caf_check'); caf.checked = !!state.cafeteria_ok;
   caf.onchange=()=>{ state.cafeteria_ok = caf.checked; save(); calcPay(); };
 
@@ -183,12 +192,35 @@ function updateStats(){
   save();
 }
 
+// ✨ NOVÉ: auto průměr z historie (když ruční i 3 vstupy jsou prázdné)
+function autoAvgFromHistory(){
+  const y = current.getFullYear(), m = current.getMonth();
+  const months = [];
+  for(let k=1;k<=12;k++){
+    const mm = (m - k + 12) % 12;
+    const yy = m - k < 0 ? y - 1 : y;
+    if(state.yearSummary?.[yy]?.[mm]){
+      months.push(state.yearSummary[yy][mm]);
+      if(months.length>=3) break;
+    }
+  }
+  if(!months.length) return 0;
+  const sumNet = months.reduce((a,b)=>a+(b.net||0),0);
+  const sumH   = months.reduce((a,b)=>a+(b.hours||0),0);
+  return sumH>0 ? (sumNet/sumH) : 0;
+}
+
 function avgRate(){
   const man = nval(state.avg.avg_manual||0);
   if(man>0) return man;
+
   const sNet=(state.avg.net1||0)+(state.avg.net2||0)+(state.avg.net3||0);
   const sH  =(state.avg.h1||0)+(state.avg.h2||0)+(state.avg.h3||0);
-  return sH>0 ? sNet/sH : 0;
+  if (sNet>0 && sH>0) return sNet/sH;
+
+  // ✨ když nejsou zadána pole M-1..M-3, zkus historii:
+  const hist = autoAvgFromHistory();
+  return hist>0 ? hist : 0;
 }
 function updateAvgInfo(){
   const v = avgRate();
@@ -219,6 +251,9 @@ function calcPay(){
   const annualBonus = (month===5 || month===10) ? (state.annual_bonus||0) : 0;
   // -----------------------------------
 
+  // ✨ NOVÉ: fond vedoucího (volitelný) – do hrubé
+  const fund = nval(state.fund_bonus||0);
+
   function mealsCalc(){
     let y=current.getFullYear(), m=current.getMonth(), end=new Date(y,m+1,0), count=0, lunches=0;
     for(let i=1;i<=end.getDate();i++){
@@ -237,7 +272,7 @@ function calcPay(){
   const mc=mealsCalc();
   const mealDeduct = mc.count*MEAL_DEDUCT, lunchDeduct=mc.lunches*LUNCH_DEDUCT, mealValue=mc.count*MEAL_INFO_VALUE;
 
-  const gross = basePay+odpoPay+nightPay+wkPay+holPay+nepret+prime+vacPay + annualBonus;
+  const gross = basePay+odpoPay+nightPay+wkPay+holPay+nepret+prime+vacPay + annualBonus + fund;
   const social=gross*0.065, health=gross*0.045;
   const tax=Math.max(0,(gross-social-health)*0.15-2570);
   const netBeforeMeals=gross-social-health-tax;
@@ -249,6 +284,7 @@ function calcPay(){
     ['Základ',money(basePay)],['Odpolední',money(odpoPay)],['Noční',money(nightPay)],
     ['Víkend',money(wkPay)],['Svátek (průměr × hodiny)',money(holPay)],['Nepřetržitý provoz',money(nepret)],
     ['Přímé prémie ('+(state.bonus_pct||0)+'%)',money(prime)],['Náhrada za dovolenou',money(vacPay)],
+    ['Fond vedoucího',money(fund)],                                         // ✨ NOVÉ řádek
     ['Roční motivační',money(annualBonus)],
     ['Srážka stravenky','− '+money(mealDeduct)],['Srážka obědy','− '+money(lunchDeduct)]
   ].map(([k,v])=>`<div class="payline"><span>${k}</span><span><b>${v}</b></span></div>`).join('');
@@ -257,6 +293,35 @@ function calcPay(){
   $('net').textContent   = '💵 Čistá mzda (odhad): ' + money(net);
   $('meal').textContent  = '🍽️ Stravenky: ' + money(mealValue);
   $('cafInfo').textContent = '🎁 Cafeterie (mimo čistou): ' + money(caf);
+
+  // ✨ NOVÉ: zapsat do ročního přehledu (pro auto-průměr a sumy)
+  const y = current.getFullYear(), m = current.getMonth();
+  if(!state.yearSummary[y]) state.yearSummary[y]={};
+  state.yearSummary[y][m] = {
+    gross, net, hours: C.hours, ts: Date.now()
+  };
+  save();
+  renderYearSummary(); // zkus vykreslit, pokud je v HTML připraveno
+}
+
+// ✨ NOVÉ: jednoduchý součet roku (pokud existuje #yearSummary)
+function renderYearSummary(){
+  const box = $('yearSummary');
+  if(!box) return;
+  const y = current.getFullYear();
+  const rows = state.yearSummary?.[y] || {};
+  const months = Object.keys(rows).map(k=>+k).sort((a,b)=>a-b);
+  let sumGross=0, sumNet=0;
+  months.forEach(m=>{
+    sumGross += rows[m].gross||0;
+    sumNet   += rows[m].net||0;
+  });
+  box.innerHTML = `
+    <hr>
+    <div class="payline"><span>Součet hrubé (rok ${y})</span><span><b>${money(sumGross)}</b></span></div>
+    <div class="payline"><span>Součet čisté (rok ${y})</span><span><b>${money(sumNet)}</b></span></div>
+    <div class="subtle">Započítáno měsíců: ${months.length}</div>
+  `;
 }
 
 function renderCalendar(){
