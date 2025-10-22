@@ -1,21 +1,12 @@
 {
-  "name": "Sm\u011bn\u00e1\u0159ek",
-  "short_name": "Sm\u011bn\u00e1\u0159ek",
-  "start_url": ".",
-  "display": "standalone",
+  "name": "Směnářek",
+  "short_name": "Směnářek",
+  "theme_color": "#0c1d33",
   "background_color": "#0c1d33",
-  "theme_color": "#102a4a",
+  "display": "standalone",
+  "start_url": "./",
   "icons": [
-    {
-      "src": "icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ],
-  "description": "Sm\u011bn\u00e1\u0159ek 1.8.2 \u2013 12h sm\u011bna = 11,25 h, namedays online, help icon right."
+    { "src": "icons/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "icons/icon-512.png", "type": "image/png", "sizes": "512x512" }
+  ]
 }
