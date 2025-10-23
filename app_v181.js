@@ -10,9 +10,10 @@ if(!state.mode) state.mode='12';
 if(state.bonus_pct==null) state.bonus_pct=10;
 if(state.annual_bonus==null) state.annual_bonus=0;
 if(state.cafeteria_ok==null) state.cafeteria_ok=false;
-if(state.fund_bonus==null) state.fund_bonus=0;                  // ✨ NOVÉ: fond vedoucího (Kč/měsíc)
+if(state.fund_bonus==null) state.fund_bonus=0;                  // starý globální fond (fallback)
+if(!state.monthFunds) state.monthFunds = {};                    // ✨ NOVÉ: fond vedoucího per měsíc { "YYYY-MM": Kč }
 if(!state.avg) state.avg={net1:null,h1:null,net2:null,h2:null,net3:null,h3:null,avg_manual:null};
-if(!state.yearSummary) state.yearSummary={};                     // ✨ NOVÉ: roční přehledy
+if(!state.yearSummary) state.yearSummary={};                     // roční přehledy
 
 let current=new Date(), selectedDate=null;
 
@@ -104,11 +105,24 @@ function bindInputsOnce(){
   $('bonus_pct').oninput=()=>{ state.bonus_pct=nval($('bonus_pct').value); save(); calcPay(); };
   $('annual_bonus').value=state.annual_bonus; $('annual_bonus').oninput=()=>{ state.annual_bonus=nval($('annual_bonus').value); save(); calcPay(); };
 
-  // ✨ NOVÉ: vstup pro fond vedoucího (pokud existuje v HTML)
+  // starý globální fond (ponechán jako fallback a pro staré HTML)
   const fondEl = $('fund_bonus');
   if (fondEl) {
     fondEl.value = state.fund_bonus ?? 0;
     fondEl.oninput = ()=>{ state.fund_bonus = nval(fondEl.value); save(); calcPay(); };
+  }
+
+  // ✨ NOVÉ: fond vedoucího pro AKTUÁLNÍ měsíc (pole id=fund_bonus_month)
+  const fbm = $('fund_bonus_month');
+  if (fbm) {
+    // handler používá vždy aktuální měsíc (při přepínání měsíců jen přepíšeme .value)
+    fbm.oninput = () => {
+      const key = current.getFullYear() + '-' + pad(current.getMonth()+1);
+      const val = fbm.value === '' ? null : nval(fbm.value);
+      if (val == null) delete state.monthFunds[key];
+      else state.monthFunds[key] = val;
+      save(); calcPay();
+    };
   }
 
   const caf=$('caf_check'); caf.checked = !!state.cafeteria_ok;
@@ -129,6 +143,15 @@ function bindInputsOnce(){
   $('clearDay').onclick=()=>{ if(!selectedDate) return alert('Klepni nejdřív na den.'); setShift(selectedDate,''); };
   $('mode12').onclick=()=>{ state.mode='12'; save(); renderCalendar(); };
   $('mode8').onclick =()=>{ state.mode='8';  save(); renderCalendar(); };
+}
+
+// pomůcka: po přepnutí měsíce doplnit hodnotu měsíčního fondu do inputu
+function refreshMonthScopedInputs(){
+  const fbm = $('fund_bonus_month');
+  if (fbm) {
+    const key = current.getFullYear() + '-' + pad(current.getMonth()+1);
+    fbm.value = state.monthFunds[key] ?? '';
+  }
 }
 
 function updateStats(){
@@ -192,7 +215,7 @@ function updateStats(){
   save();
 }
 
-// ✨ NOVÉ: auto průměr z historie (když ruční i 3 vstupy jsou prázdné)
+// auto průměr z historie (když ruční i 3 vstupy jsou prázdné)
 function autoAvgFromHistory(){
   const y = current.getFullYear(), m = current.getMonth();
   const months = [];
@@ -218,7 +241,6 @@ function avgRate(){
   const sH  =(state.avg.h1||0)+(state.avg.h2||0)+(state.avg.h3||0);
   if (sNet>0 && sH>0) return sNet/sH;
 
-  // ✨ když nejsou zadána pole M-1..M-3, zkus historii:
   const hist = autoAvgFromHistory();
   return hist>0 ? hist : 0;
 }
@@ -229,7 +251,8 @@ function updateAvgInfo(){
 
 function calcPay(){
   const avg=avgRate(); updateAvgInfo();
-  const C=state._calc||{hours:0,afterH:0,nightH:0,weekendH:0,vac:0,holWorkedH:0,DAILY_WORKED:12.25,H8:8.0,VAC12:11.25,VAC8:8.0};
+  const C=state._calc||{hours:0,afterH:0,nightH:0,weekendH:0, vac:0, holWorkedH:0, DAILY_WORKED:12.25, H8:8.0, VAC12:11.25, VAC8:8.0};
+
   const r={
     base:nval(state.rates['rate_base']), odpo:nval(state.rates['rate_odpo']),
     noc:nval(state.rates['rate_noc']), vikend:nval(state.rates['rate_vikend']),
@@ -249,10 +272,10 @@ function calcPay(){
   // --- Roční motivační jen v 6/11 ---
   const month = (current instanceof Date) ? current.getMonth() : (new Date()).getMonth(); // 0..11
   const annualBonus = (month===5 || month===10) ? (state.annual_bonus||0) : 0;
-  // -----------------------------------
 
-  // ✨ NOVÉ: fond vedoucího (volitelný) – do hrubé
-  const fund = nval(state.fund_bonus||0);
+  // ✨ FOND VEDOUCÍHO: vezmi měsíční hodnotu (fallback na globální, když pole není/není vyplněno)
+  const ymKey = current.getFullYear() + '-' + pad(current.getMonth()+1);
+  const fund = nval(state.monthFunds?.[ymKey] ?? state.fund_bonus ?? 0);
 
   function mealsCalc(){
     let y=current.getFullYear(), m=current.getMonth(), end=new Date(y,m+1,0), count=0, lunches=0;
@@ -284,7 +307,7 @@ function calcPay(){
     ['Základ',money(basePay)],['Odpolední',money(odpoPay)],['Noční',money(nightPay)],
     ['Víkend',money(wkPay)],['Svátek (průměr × hodiny)',money(holPay)],['Nepřetržitý provoz',money(nepret)],
     ['Přímé prémie ('+(state.bonus_pct||0)+'%)',money(prime)],['Náhrada za dovolenou',money(vacPay)],
-    ['Fond vedoucího',money(fund)],                                         // ✨ NOVÉ řádek
+    ['Fond vedoucího',money(fund)],
     ['Roční motivační',money(annualBonus)],
     ['Srážka stravenky','− '+money(mealDeduct)],['Srážka obědy','− '+money(lunchDeduct)]
   ].map(([k,v])=>`<div class="payline"><span>${k}</span><span><b>${v}</b></span></div>`).join('');
@@ -294,17 +317,16 @@ function calcPay(){
   $('meal').textContent  = '🍽️ Stravenky: ' + money(mealValue);
   $('cafInfo').textContent = '🎁 Cafeterie (mimo čistou): ' + money(caf);
 
-  // ✨ NOVÉ: zapsat do ročního přehledu (pro auto-průměr a sumy)
+  // roční přehled
   const y = current.getFullYear(), m = current.getMonth();
   if(!state.yearSummary[y]) state.yearSummary[y]={};
   state.yearSummary[y][m] = {
     gross, net, hours: C.hours, ts: Date.now()
   };
   save();
-  renderYearSummary(); // zkus vykreslit, pokud je v HTML připraveno
+  renderYearSummary();
 }
 
-// ✨ NOVÉ: jednoduchý součet roku (pokud existuje #yearSummary)
 function renderYearSummary(){
   const box = $('yearSummary');
   if(!box) return;
@@ -361,7 +383,9 @@ function renderCalendar(){
     };
   });
 
-  updateStats(); updateHeader(); bindInputsOnce(); calcPay();
+  updateStats(); updateHeader(); bindInputsOnce();
+  refreshMonthScopedInputs();   // ✨ doplní hodnoty pro aktuální měsíc do inputu
+  calcPay();
 }
 
 renderCalendar();
