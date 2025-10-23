@@ -120,6 +120,16 @@
     </div>
 
     <label>Základní hodinovka</label><input id="rate_base" type="number" step="0.01">
+
+    <!-- ✨ NOVÉ: ZÁKLAD PRO AKTUÁLNÍ MĚSÍC -->
+    <div class="row" style="width:100%">
+      <div style="flex:1;min-width:140px">
+        <label>Základní hodinovka – tento měsíc (Kč/h)</label>
+        <input id="rate_base_month" type="number" step="0.01" value="">
+      </div>
+    </div>
+    <!-- /nové -->
+
     <div class="row" style="width:100%">
       <div style="flex:1;min-width:140px"><label>Odpolední příplatek</label><input id="rate_odpo" type="number" step="0.01"></div>
       <div style="flex:1;min-width:140px"><label>Noční příplatek</label><input id="rate_noc" type="number" step="0.01"></div>
@@ -141,10 +151,15 @@
       <div style="flex:1;min-width:140px"><label>Roční motivační (Kč) — počítá se jen v 6/11</label><input id="annual_bonus" type="number" step="1" value="0"></div>
     </div>
 
-    <!-- ✨ NOVÉ: Fond vedoucího -->
+    <!-- Globální fallback (ponechán) -->
     <div class="row" style="width:100%">
       <div style="flex:1;min-width:140px"><label>Fond vedoucího (Kč)</label><input id="fund_bonus" type="number" step="1" value="0"></div>
     </div>
+    <!-- ✨ NOVÉ: měsíční fond vedoucího -->
+    <div class="row" style="width:100%">
+      <div style="flex:1;min-width:140px"><label>Fond vedoucího – tento měsíc (Kč)</label><input id="fund_bonus_month" type="number" step="1" value=""></div>
+    </div>
+    <!-- /nové -->
 
     <hr>
     <div class="h3wrap">
@@ -174,8 +189,22 @@
     <div id="meal" class="result">🍽️ Stravenky: 0,00 Kč</div>
     <div id="cafInfo" class="result">🎁 Cafeterie (mimo čistou): 0,00 Kč</div>
 
-    <!-- ✨ NOVÉ: roční součty (zobrazuje je app_v181.js, když existuje tento box) -->
+    <!-- ✨ AUDIT -->
+    <hr>
+    <div class="h3wrap">
+      <h3 style="margin:0">Hodinový audit (aktuální měsíc)</h3>
+      <div class="info" title="Nápověda">ℹ️</div>
+      <div class="tooltip">Detail po dnech: odpracované, odpolední, noční, víkend a sváteční hodiny.</div>
+    </div>
+    <div class="row" style="margin:.4rem 0">
+      <button class="chip" id="toggleAudit">Zobrazit / skrýt audit</button>
+    </div>
+    <div id="audit" style="display:none"></div>
+    <!-- /AUDIT -->
+
+    <!-- ✨ roční součty -->
     <div id="yearSummary"></div>
+    <!-- /roční součty -->
 
   </aside>
 </div>
