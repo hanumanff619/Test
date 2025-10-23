@@ -64,8 +64,8 @@
     .h3wrap .tooltip{right:0;left:auto;top:2.1rem}
     /* podpis barvy */
     .sig {display:flex; gap:.4rem; align-items:center; opacity:.9}
-    .sig .me {color:#66b3ff; font-weight:700}   /* Hanuman modře */
-    .sig .ai {color:#ff7ac8; font-weight:700}   /* Terezka AI růžově */
+    .sig .me {color:#66b3ff; font-weight:700}
+    .sig .ai {color:#ff7ac8; font-weight:700}
   </style>
 </head>
 <body>
@@ -153,7 +153,7 @@
       <div style="flex:1;min-width:140px"><label>Roční motivační (Kč) — počítá se jen v 6/11</label><input id="annual_bonus" type="number" step="1" value="0"></div>
     </div>
 
-    <!-- ✨ MĚSÍČNÍ FOND VEDOUCÍHO (globální pole odstraněno) -->
+    <!-- ✨ MĚSÍČNÍ FOND VEDOUCÍHO -->
     <div class="row" style="width:100%">
       <div style="flex:1;min-width:140px"><label>Fond vedoucího – tento měsíc (Kč)</label><input id="fund_bonus_month" type="number" step="1" value=""></div>
     </div>
@@ -197,7 +197,6 @@
       <button class="chip" id="toggleAudit">Zobrazit / skrýt audit</button>
     </div>
     <div id="audit" style="display:none"></div>
-    <!-- /AUDIT -->
 
     <!-- ✨ roční součty -->
     <div id="yearSummary"></div>
@@ -216,6 +215,7 @@
   </aside>
 </div>
 
-<script src="app_v181.js?v=181"></script>
+<!-- DŮLEŽITÉ: defer, aby se skript spustil až po parsování DOM -->
+<script src="app_v181.js?v=181" defer></script>
 </body>
 </html>
