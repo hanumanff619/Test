@@ -1,8 +1,9 @@
-// Směnářek 1.8.1 – help icon right, single holiday mark, namedays online + per-month rate + per-month fund + audit
+// Směnářek 1.8.1 – help icon right, single holiday mark, namedays online + per-month rate + per-month fund + audit + fixed premiums
 const MEAL_DEDUCT = 40, LUNCH_DEDUCT = 40, MEAL_INFO_VALUE = 110;
 const MAP12 = {D:'D 05:45–18:00', N:'N 17:45–06:00', V:'Dovolená'};
 const MAP8  = {R:'R 06:00–14:00', O:'O 14:00–22:00', N:'N 22:00–06:00', V:'Dovolená'};
 
+// uložení stavu
 let state = JSON.parse(localStorage.getItem('smenarek_state_v181')||'{}');
 if(!state.shifts) state.shifts={};
 if(!state.rates) state.rates={};
@@ -11,10 +12,10 @@ if(state.bonus_pct==null) state.bonus_pct=10;
 if(state.annual_bonus==null) state.annual_bonus=0;
 if(state.cafeteria_ok==null) state.cafeteria_ok=false;
 
-// staré/fallback
+// fallbacky pro starší uložený stav
 if(state.fund_bonus==null) state.fund_bonus=0;
 
-// ✨ NOVÉ mapy: per-měsíc hodnoty
+// ✨ per-měsíc hodnoty
 if(!state.monthFunds)  state.monthFunds = {};  // { "YYYY-MM": Kč }
 if(!state.monthRates)  state.monthRates = {};  // { "YYYY-MM": Kč/h }
 
@@ -118,26 +119,18 @@ function bindInputsOnce(){
   // Cafeterie
   const caf=$('caf_check'); if(caf){ caf.checked = !!state.cafeteria_ok; caf.onchange=()=>{ state.cafeteria_ok = caf.checked; save(); calcPay(); }; }
 
-  // Fond vedoucího – fallback (globální)
+  // Fond vedoucího – fallback (globální) … ale pokud je v DOM i měsíční fond, globální skryj a ignoruj
   const fondEl = $('fund_bonus');
-  if (fondEl) {
+  const fbm = $('fund_bonus_month');
+  if (fondEl && fbm) {
+    const container = fondEl.closest('.row') || fondEl.parentElement;
+    if (container) container.style.display='none';
+  } else if (fondEl) {
     fondEl.value = state.fund_bonus ?? 0;
     fondEl.oninput = ()=>{ state.fund_bonus = nval(fondEl.value); save(); calcPay(); };
   }
 
-  // ✨ NOVÉ: fond vedoucího pro AKTUÁLNÍ měsíc
-  const fbm = $('fund_bonus_month');
-  if (fbm) {
-    fbm.oninput = () => {
-      const key = ym(current);
-      const val = fbm.value === '' ? null : nval(fbm.value);
-      if (val == null) delete state.monthFunds[key];
-      else state.monthFunds[key] = val;
-      save(); calcPay();
-    };
-  }
-
-  // ✨ NOVÉ: základní hodinovka pro AKTUÁLNÍ měsíc
+  // ✨ základní hodinovka pro AKTUÁLNÍ měsíc
   const rbm = $('rate_base_month');
   if (rbm) {
     rbm.oninput = () => {
@@ -145,6 +138,17 @@ function bindInputsOnce(){
       const val = rbm.value === '' ? null : nval(rbm.value);
       if (val == null) delete state.monthRates[key];
       else state.monthRates[key] = val;
+      save(); calcPay();
+    };
+  }
+
+  // ✨ fond vedoucího pro AKTUÁLNÍ měsíc
+  if (fbm) {
+    fbm.oninput = () => {
+      const key = ym(current);
+      const val = fbm.value === '' ? null : nval(fbm.value);
+      if (val == null) delete state.monthFunds[key];
+      else state.monthFunds[key] = val;
       save(); calcPay();
     };
   }
@@ -171,7 +175,7 @@ function bindInputsOnce(){
   if(m12) m12.onclick=()=>{ state.mode='12'; save(); renderCalendar(); };
   if(m8)  m8.onclick =()=>{ state.mode='8';  save(); renderCalendar(); };
 
-  // ✨ Hodinový audit toggle
+  // Hodinový audit toggle
   const tgl=$('toggleAudit');
   if(tgl){ tgl.onclick=()=>{ const box=$('audit'); if(!box) return; box.style.display = (box.style.display==='none' || !box.style.display) ? 'block' : 'none'; if(box.style.display==='block') renderAudit(); }; }
 }
@@ -185,10 +189,10 @@ function refreshMonthScopedInputs(){
   if (rbm) rbm.value = state.monthRates[key] ?? '';
 }
 
-// spočítat statistiky měsíce (akumulační)
+// statistiky měsíce (akumulace) – ★ oprava příplatků o pauzu 0:45
 function updateStats(){
   const y=current.getFullYear(), m=current.getMonth(), last=new Date(y,m+1,0);
-  const DAILY_WORKED = 11.25;
+  const DAILY_WORKED = 11.25;  // už po odečtu pauzy
   const VAC12 = 11.25;
   const H8 = 8.0;
 
@@ -211,13 +215,14 @@ function updateStats(){
     } else {
       if(t==='D'){
         dDay++; hours+=DAILY_WORKED;
-        afterH+=4.0; if(isW(dt)) weekendH+=DAILY_WORKED;
+        afterH+=3.75;                           // ★ dříve 4.00
+        if(isW(dt)) weekendH+=DAILY_WORKED;
         if(isHoliday(dt)) holWorkedH+=VAC12;
       }
       if(t==='N'){
         nDay++; hours+=DAILY_WORKED;
-        afterH += 4.25;
-        nightH += 8.0;
+        afterH += 4.00;                         // ★ dříve 4.25
+        nightH += 7.25;                         // ★ dříve 8.00
         const wd=dt.getDay();
         if(wd===5) weekendH+=6;
         else if(wd===6) weekendH+=DAILY_WORKED;
@@ -237,8 +242,8 @@ function updateStats(){
   if(state.mode==='12'){
     $('substats').style.display='block';
     $('substats').innerHTML = [
-      `<div class="payline"><span>Odpolední hodiny (D: 4.00, N: 4.25)</span><span><b>${r2(afterH)}</b> h</span></div>`,
-      `<div class="payline"><span>Noční hodiny (22–6)</span><span><b>${r2(nightH)}</b> h</span></div>`,
+      `<div class="payline"><span>Odpolední hodiny (D: 3.75, N: 4.00)</span><span><b>${r2(afterH)}</b> h</span></div>`,
+      `<div class="payline"><span>Noční hodiny (22–6, po pauze)</span><span><b>${r2(nightH)}</b> h</span></div>`,
       `<div class="payline"><span>Víkendové hodiny</span><span><b>${r2(weekendH)}</b> h</span></div>`
     ].join('');
   } else $('substats').style.display='none';
@@ -281,7 +286,7 @@ function updateAvgInfo(){
   $('avg_info').textContent = 'Průměrná náhrada: ' + money(v);
 }
 
-// ✨ denní rozpad pro audit
+// denní rozpad pro audit – ★ zohledněné nové hodnoty
 function computeDailyBreakdown(){
   const y=current.getFullYear(), m=current.getMonth();
   const last=daysIn(y,m);
@@ -291,24 +296,24 @@ function computeDailyBreakdown(){
     let worked=0, afterH=0, nightH=0, weekendH=0, holH=0;
     if(t){
       if(t==='V'){
-        // dovolená: do auditu ji nezapočítáme do worked, ale svátek/dovolená se řeší v pay přes avg
+        // dovolená – řeší se v pay přes avg
       }else if(state.mode==='8'){
         worked=8;
         if(t==='R'||t==='O') afterH+=8;
         if(t==='N') nightH+=8;
         if(isW(dt)) weekendH+=8;
         if(isHoliday(dt)) holH+=8;
-        if(t==='N' && isHoliday(new Date(y,m,i+1))) holH+=6; // přesah do svátku
+        if(t==='N' && isHoliday(new Date(y,m,i+1))) holH+=6;
       }else{
-        // 12h
+        // 12h s pauzou promítnutou do příplatků
         worked=11.25;
         if(t==='D'){
-          afterH+=4.0;
+          afterH+=3.75;
           if(isW(dt)) weekendH+=11.25;
           if(isHoliday(dt)) holH+=11.25;
         }
         if(t==='N'){
-          afterH+=4.25; nightH+=8.0;
+          afterH+=4.00; nightH+=7.25;
           const wd=dt.getDay();
           if(wd===5) weekendH+=6;
           else if(wd===6) weekendH+=11.25;
@@ -356,7 +361,7 @@ function calcPay(){
   const avg=avgRate(); updateAvgInfo();
   const C=state._calc||{hours:0,afterH:0,nightH:0,weekendH:0, vac:0, holWorkedH:0, DAILY_WORKED:12.25, H8:8.0, VAC12:11.25, VAC8:8.0};
 
-  // ✨ vezmi základ z měsíční mapy (pokud existuje), jinak globální
+  // základ z měsíční mapy (pokud existuje), jinak globální
   const ymKey = ym(current);
   const baseRateMonth = nval(state.monthRates?.[ymKey] ?? 0);
   const baseRateGlobal = nval(state.rates['rate_base']);
@@ -380,14 +385,14 @@ function calcPay(){
   const vacHours = (state.mode==='8' ? C.VAC8 : C.VAC12);
   const vacPay  = vacHours * avg * C.vac;
 
-  // Roční motivační: jen 6/11
+  // roční motivační jen 6/11
   const month = (current instanceof Date) ? current.getMonth() : (new Date()).getMonth(); // 0..11
   const annualBonus = (month===5 || month===10) ? (state.annual_bonus||0) : 0;
 
-  // Fond vedoucího pro měsíc (fallback na globální)
+  // fond vedoucího pro měsíc (fallback na starý jen když měsíční není)
   const fund = nval(state.monthFunds?.[ymKey] ?? state.fund_bonus ?? 0);
 
-  // Stravenky/obědy
+  // stravenky/obědy
   function mealsCalc(){
     let y=current.getFullYear(), m=current.getMonth(), end=new Date(y,m+1,0), count=0, lunches=0;
     for(let i=1;i<=end.getDate();i++){
@@ -429,7 +434,7 @@ function calcPay(){
   $('meal').textContent  = '🍽️ Stravenky: ' + money(mealValue);
   $('cafInfo').textContent = '🎁 Cafeterie (mimo čistou): ' + money(caf);
 
-  // roční přehled (pro auto-průměr a sumy)
+  // roční přehled
   const y = current.getFullYear();
   if(!state.yearSummary[y]) state.yearSummary[y]={};
   state.yearSummary[y][current.getMonth()] = {
@@ -437,7 +442,7 @@ function calcPay(){
   };
   save();
 
-  // pokud je audit otevřený, překreslit
+  // audit překreslit pokud je otevřený
   const auditBox=$('audit');
   if(auditBox && auditBox.style.display==='block') renderAudit();
 
@@ -502,7 +507,4 @@ function renderCalendar(){
 
   updateStats(); updateHeader(); bindInputsOnce();
   refreshMonthScopedInputs();   // doplní hodnoty pro aktuální měsíc do inputů
-  calcPay();
-}
-
-renderCalendar();
+  calcPay(
