@@ -118,9 +118,8 @@
       <div class="tooltip">Základ + příplatky. Dole vyplň „Průměrná náhrada“ (nebo ručně Kč/h). Používá se pro svátky a dovolenou.</div>
     </div>
 
-    <label>Základní hodinovka</label><input id="rate_base" type="number" step="0.01">
+    <label>Základní hodinovka (globální)</label><input id="rate_base" type="number" step="0.01">
 
-    <!-- ✨ ZÁKLAD PRO AKTUÁLNÍ MĚSÍC -->
     <div class="row" style="width:100%">
       <div style="flex:1;min-width:140px">
         <label>Základní hodinovka – tento měsíc (Kč/h)</label>
@@ -149,7 +148,7 @@
       <div style="flex:1;min-width:140px"><label>Roční motivační (Kč) — počítá se jen v 6/11</label><input id="annual_bonus" type="number" step="1" value="0"></div>
     </div>
 
-    <!-- ✨ MĚSÍČNÍ FOND VEDOUCÍHO (globální pole odstraněno) -->
+    <!-- jen MĚSÍČNÍ fond vedoucího -->
     <div class="row" style="width:100%">
       <div style="flex:1;min-width:140px"><label>Fond vedoucího – tento měsíc (Kč)</label><input id="fund_bonus_month" type="number" step="1" value=""></div>
     </div>
@@ -182,7 +181,6 @@
     <div id="meal" class="result">🍽️ Stravenky: 0,00 Kč</div>
     <div id="cafInfo" class="result">🎁 Cafeterie (mimo čistou): 0,00 Kč</div>
 
-    <!-- ✨ AUDIT -->
     <hr>
     <div class="h3wrap">
       <h3 style="margin:0">Hodinový audit (aktuální měsíc)</h3>
@@ -193,15 +191,11 @@
       <button class="chip" id="toggleAudit">Zobrazit / skrýt audit</button>
     </div>
     <div id="audit" style="display:none"></div>
-    <!-- /AUDIT -->
 
-    <!-- ✨ roční součty -->
     <div id="yearSummary"></div>
-
   </aside>
 </div>
 
-<script src="app_v181.js?v=181"></script>
+<script src="app_v182.js?v=182"></script>
 </body>
 </html>
-```0
