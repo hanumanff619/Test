@@ -526,3 +526,5 @@ function applySignature(){
   const sig=document.createElement('div');
   sig.id='hz-signature';
   sig.style.margin='1rem
+}
+renderCalendar();
