@@ -62,7 +62,10 @@
     .h3wrap{display:flex;align-items:center;gap:.4rem;position:relative}
     .h3wrap .info{position:static;margin-left:auto !important}
     .h3wrap .tooltip{right:0;left:auto;top:2.1rem}
-    footer{max-width:1200px;margin:0 auto;padding:0 1rem 1.2rem 1rem;color:var(--muted);text-align:center;font-size:.9rem}
+    /* podpis barvy */
+    .sig {display:flex; gap:.4rem; align-items:center; opacity:.9}
+    .sig .me {color:#66b3ff; font-weight:700}   /* Hanuman modře */
+    .sig .ai {color:#ff7ac8; font-weight:700}   /* Terezka AI růžově */
   </style>
 </head>
 <body>
@@ -121,7 +124,7 @@
 
     <label>Základní hodinovka</label><input id="rate_base" type="number" step="0.01">
 
-    <!-- ZÁKLAD PRO AKTUÁLNÍ MĚSÍC -->
+    <!-- ✨ ZÁKLAD PRO AKTUÁLNÍ MĚSÍC -->
     <div class="row" style="width:100%">
       <div style="flex:1;min-width:140px">
         <label>Základní hodinovka – tento měsíc (Kč/h)</label>
@@ -150,7 +153,7 @@
       <div style="flex:1;min-width:140px"><label>Roční motivační (Kč) — počítá se jen v 6/11</label><input id="annual_bonus" type="number" step="1" value="0"></div>
     </div>
 
-    <!-- MĚSÍČNÍ FOND VEDOUCÍHO -->
+    <!-- ✨ MĚSÍČNÍ FOND VEDOUCÍHO (globální pole odstraněno) -->
     <div class="row" style="width:100%">
       <div style="flex:1;min-width:140px"><label>Fond vedoucího – tento měsíc (Kč)</label><input id="fund_bonus_month" type="number" step="1" value=""></div>
     </div>
@@ -183,7 +186,7 @@
     <div id="meal" class="result">🍽️ Stravenky: 0,00 Kč</div>
     <div id="cafInfo" class="result">🎁 Cafeterie (mimo čistou): 0,00 Kč</div>
 
-    <!-- AUDIT -->
+    <!-- ✨ AUDIT -->
     <hr>
     <div class="h3wrap">
       <h3 style="margin:0">Hodinový audit (aktuální měsíc)</h3>
@@ -194,24 +197,25 @@
       <button class="chip" id="toggleAudit">Zobrazit / skrýt audit</button>
     </div>
     <div id="audit" style="display:none"></div>
+    <!-- /AUDIT -->
 
-    <!-- roční součty -->
+    <!-- ✨ roční součty -->
     <div id="yearSummary"></div>
 
-    <!-- ✨ ROČNÍ SOUČET STRAVENEK -->
-    <div id="yearMeals" class="note" style="margin-top:.7rem"></div>
+    <!-- ✨ ROČNÍ STRAVENKY: ks + hodnota (vyplní app) -->
+    <div id="yearMeals" class="result">
+      🍽️ Roční stravenky: <b><span id="yearMealCount">0</span> ks</b> — <b><span id="yearMealValue">0,00 Kč</span></b>
+    </div>
+
+    <!-- ✍️ PODPIS -->
+    <hr>
+    <div class="sig">
+      <span class="me">Hanuman</span>&nbsp;&amp;&nbsp;<span class="ai">Terezka AI</span>
+    </div>
 
   </aside>
 </div>
 
-<footer>
-  — Směnářek • vyrobeno s ❤️ • <span id="sigYear"></span>
-</footer>
-
-<script>
-  // drobnost: rok do podpisu
-  document.getElementById('sigYear').textContent = new Date().getFullYear();
-</script>
 <script src="app_v181.js?v=181"></script>
 </body>
 </html>
