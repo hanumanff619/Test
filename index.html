@@ -63,9 +63,16 @@
     .h3wrap .info{position:static;margin-left:auto !important}
     .h3wrap .tooltip{right:0;left:auto;top:2.1rem}
     /* podpis barvy */
-    .sig {display:flex; gap:.4rem; align-items:center; opacity:.9}
-    .sig .me {color:#66b3ff; font-weight:700}
-    .sig .ai {color:#ff7ac8; font-weight:700}
+    .sig {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:.4rem;
+  opacity:.9;
+  font-size:1.05rem;
+}
+.sig .me {color:#66b3ff;font-weight:700;}
+.sig .ai {color:#ff7ac8;font-weight:700;}
   </style>
 </head>
 <body>
@@ -201,18 +208,12 @@
     <!-- ✨ roční součty -->
     <div id="yearSummary"></div>
 
-    <!-- ✨ ROČNÍ STRAVENKY: ks + hodnota (vyplní app) -->
-    <div id="yearMeals" class="result">
-      🍽️ Roční stravenky: <b><span id="yearMealCount">0</span> ks</b> — <b><span id="yearMealValue">0,00 Kč</span></b>
-    </div>
-
     <!-- ✍️ PODPIS -->
-    <hr>
-    <div class="sig">
-      <span class="me">Hanuman</span>&nbsp;&amp;&nbsp;<span class="ai">Terezka AI</span>
-    </div>
-
-  </aside>
+<hr>
+<div class="sig">
+  <span class="me">Hanuman</span>
+  <span style="color:#ff4444;font-weight:700">&nbsp;&amp;&nbsp;</span>
+  <span class="ai">Terezka AI</span>
 </div>
 
 <!-- DŮLEŽITÉ: defer, aby se skript spustil až po parsování DOM -->
