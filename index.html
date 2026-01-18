@@ -62,9 +62,7 @@
     .h3wrap{display:flex;align-items:center;gap:.4rem;position:relative}
     .h3wrap .info{position:static;margin-left:auto !important}
     .h3wrap .tooltip{right:0;left:auto;top:2.1rem}
-    .sig{
-      display:flex;justify-content:center;align-items:center;gap:.4rem;opacity:.9;font-size:1.05rem;
-    }
+    .sig{display:flex;justify-content:center;align-items:center;gap:.4rem;opacity:.9;font-size:1.05rem;}
     .sig .me{color:#66b3ff;font-weight:700;}
     .sig .ai{color:#ff7ac8;font-weight:700;}
   </style>
@@ -117,7 +115,7 @@
   <aside class="card" id="card-stats">
     <div class="info" title="Nápověda">ℹ️</div>
     <div class="tooltip">
-      Zadej sazby. 12h směna má 12.25 h (odpracované), náhrady (svátek/dovolená) 11.25 h/den.
+      Zadej sazby. 12h směna má 11.25 h (odpracované), náhrady (svátek/dovolená) 11.25 h/den.
       8h režim = 8.00 h.<br>
       <b>8h Ranní:</b> Po–Pá noční 35 min, So/Ne noční 60 min.<br>
       <b>Sobota:</b> +500 Kč za každou sobotu se směnou.
@@ -128,7 +126,8 @@
     <div id="substats" class="note" style="display:none"></div>
 
     <p class="note">
-      <b>Stravenka:</b> v 8h režimu se počítá <b>jen za sobotu</b> (1 ks, když je směna).<br>
+      <b>8h:</b> Stravenka <b>jen za sobotu</b> (1 ks, když je směna).<br>
+      <b>Oběd:</b> Po–Pá jen když je <b>R</b> (zůstává jako dřív).<br>
       Dovolená: V = 11.25 h (12h) / 8.00 h (8h). Svátek: průměr.
     </p>
 
@@ -237,7 +236,6 @@
   </aside>
 </div>
 
-<!-- ✅ SCRIPT AŽ NA KONCI + NOVÁ VERZE KVŮLI CACHE -->
-<script src="app_v181.js?v=182" defer></script>
+<script src="app_v183.js?v=183" defer></script>
 </body>
 </html>
