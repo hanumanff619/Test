@@ -416,8 +416,12 @@ function calcPay(){
         if(t==='D'){ if(isW(dt)) count+=2; else { count+=1; lunches++; } }
       }else{
         if(t==='R'){
-          if(isW(dt)) count += 2;
-          else { count += 1; lunches += 1; }
+         if(isSat(dt)) {
+  count += 1;          // stravenka jen sobota
+} else if(!isW(dt)) {
+  lunches += 1;        // oběd jen Po–Pá
+}
+// neděle = nic
         }
       }
     }
