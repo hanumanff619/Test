@@ -62,19 +62,14 @@
     .h3wrap{display:flex;align-items:center;gap:.4rem;position:relative}
     .h3wrap .info{position:static;margin-left:auto !important}
     .h3wrap .tooltip{right:0;left:auto;top:2.1rem}
-    /* podpis barvy */
-    .sig {
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      gap:.4rem;
-      opacity:.9;
-      font-size:1.05rem;
+    .sig{
+      display:flex;justify-content:center;align-items:center;gap:.4rem;opacity:.9;font-size:1.05rem;
     }
-    .sig .me {color:#66b3ff;font-weight:700;}
-    .sig .ai {color:#ff7ac8;font-weight:700;}
+    .sig .me{color:#66b3ff;font-weight:700;}
+    .sig .ai{color:#ff7ac8;font-weight:700;}
   </style>
 </head>
+
 <body>
 <header>
   <div class="head">
@@ -136,6 +131,7 @@
       <b>Stravenka:</b> v 8h režimu se počítá <b>jen za sobotu</b> (1 ks, když je směna).<br>
       Dovolená: V = 11.25 h (12h) / 8.00 h (8h). Svátek: průměr.
     </p>
+
     <hr>
 
     <div class="h3wrap">
@@ -149,7 +145,6 @@
 
     <label>Základní hodinovka</label><input id="rate_base" type="number" step="0.01">
 
-    <!-- ✨ ZÁKLAD PRO AKTUÁLNÍ MĚSÍC -->
     <div class="row" style="width:100%">
       <div style="flex:1;min-width:140px">
         <label>Základní hodinovka – tento měsíc (Kč/h)</label>
@@ -161,6 +156,7 @@
       <div style="flex:1;min-width:140px"><label>Odpolední příplatek</label><input id="rate_odpo" type="number" step="0.01"></div>
       <div style="flex:1;min-width:140px"><label>Noční příplatek</label><input id="rate_noc" type="number" step="0.01"></div>
     </div>
+
     <div class="row" style="width:100%">
       <div style="flex:1;min-width:140px"><label>Víkendový příplatek</label><input id="rate_vikend" type="number" step="0.01"></div>
       <div style="flex:1;min-width:140px"><label>Nepřetržitý provoz</label><input id="rate_nepretrzity" type="number" step="0.01"></div>
@@ -178,12 +174,12 @@
       <div style="flex:1;min-width:140px"><label>Roční motivační (Kč) — počítá se jen v 6/11</label><input id="annual_bonus" type="number" step="1" value="0"></div>
     </div>
 
-    <!-- ✨ MĚSÍČNÍ FOND VEDOUCÍHO -->
     <div class="row" style="width:100%">
       <div style="flex:1;min-width:140px"><label>Fond vedoucího – tento měsíc (Kč)</label><input id="fund_bonus_month" type="number" step="1" value=""></div>
     </div>
 
     <hr>
+
     <div class="h3wrap">
       <h3 style="margin:0">Průměrná náhrada (poslední 3 měsíce)</h3>
       <div class="info" title="Nápověda">ℹ️</div>
@@ -197,10 +193,12 @@
       <div style="flex:1;min-width:180px"><label>Čistá mzda M-1</label><input id="avg_net1" type="number" step="0.01"></div>
       <div style="flex:1;min-width:180px"><label>Čistá mzda M-2</label><input id="avg_net2" type="number" step="0.01"></div>
     </div>
+
     <div class="row" style="width:100%">
       <div style="flex:1;min-width:180px"><label>Hodiny M-1</label><input id="avg_h1" type="number" step="0.01"></div>
       <div style="flex:1;min-width:180px"><label>Hodiny M-2</label><input id="avg_h2" type="number" step="0.01"></div>
     </div>
+
     <div class="row" style="width:100%">
       <div style="flex:1;min-width:180px"><label>Čistá mzda M-3</label><input id="avg_net3" type="number" step="0.01"></div>
       <div style="flex:1;min-width:180px"><label>Hodiny M-3</label><input id="avg_h3" type="number" step="0.01"></div>
@@ -216,33 +214,30 @@
     <div id="meal" class="result">🍽️ Stravenky: 0,00 Kč</div>
     <div id="cafInfo" class="result">🎁 Cafeterie (mimo čistou): 0,00 Kč</div>
 
-    <!-- ✨ AUDIT -->
     <hr>
+
     <div class="h3wrap">
       <h3 style="margin:0">Hodinový audit (aktuální měsíc)</h3>
       <div class="info" title="Nápověda">ℹ️</div>
-      <div class="tooltip">Detail po dnech: odpracované, odpolední (R+O), noční, víkend a sváteční hodiny.</div>
+      <div class="tooltip">Detail po dnech: odpracované, odpolední, noční, víkend a sváteční hodiny.</div>
     </div>
     <div class="row" style="margin:.4rem 0">
       <button class="chip" id="toggleAudit">Zobrazit / skrýt audit</button>
     </div>
     <div id="audit" style="display:none"></div>
 
-    <!-- ✨ roční součty -->
     <div id="yearSummary"></div>
 
-    <!-- ✍️ PODPIS -->
     <hr>
     <div class="sig">
       <span class="me">Hanuman</span>
       <span style="color:#ff4444;font-weight:700">&nbsp;&amp;&nbsp;</span>
       <span class="ai">Terezka AI</span>
     </div>
-
-    <!-- DŮLEŽITÉ: defer, aby se skript spustil až po parsování DOM -->
-    <script src="app_v181.js?v=181" defer></script>
   </aside>
 </div>
 
+<!-- ✅ SCRIPT AŽ NA KONCI + NOVÁ VERZE KVŮLI CACHE -->
+<script src="app_v181.js?v=182" defer></script>
 </body>
 </html>
