@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Směnářek - MIX Edition</title>
+  <title>Směnářek</title>
   <meta name="theme-color" content="#102a4a">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png">
@@ -42,14 +42,11 @@
     .calendar td.selected{background:var(--sel)!important;box-shadow:inset 0 0 0 2px #75c7ff99}
     .calendar td.today:not(.selected){box-shadow:inset 0 0 0 2px rgba(108,192,255,.75)}
     .daynum{position:absolute;top:.35rem;right:.35rem;color:var(--muted);font-size:.85rem;text-shadow:0 1px 1px rgba(0,0,0,.35)}
-    .badge{display:inline-block;margin-top:1.2rem;padding:.2rem .5rem;border-radius:8px;font-size:.85rem;background:rgba(0,0,0,0.3);font-weight:700}
-    
-    /* Mix barvy směn */
-    .R{background:linear-gradient(180deg,rgba(108,192,255,.15),rgba(108,192,255,.10))!important; border-bottom: 3px solid #6cc0ff66}
-    .D{background:linear-gradient(180deg,rgba(108,192,255,.20),rgba(108,192,255,.15))!important; border-bottom: 3px solid #6cc0ffcc}
-    .N{background:linear-gradient(180deg,rgba(255,188,104,.15),rgba(255,188,104,.10))!important; border-bottom: 3px solid #ffbc68cc}
-    .V{background:linear-gradient(180deg,rgba(119,214,139,.14),rgba(119,214,139,.10))!important; border-bottom: 3px solid var(--good)}
-    
+    .badge{display:inline-block;margin-top:1.2rem;padding:.2rem .5rem;border-radius:8px;font-size:.85rem;background:rgba(0,0,0,.18)}
+    .D{background:linear-gradient(180deg,rgba(108,192,255,0.25),rgba(108,192,255,0.1))}
+    .N{background:linear-gradient(180deg,rgba(255,188,104,0.25),rgba(255,188,104,0.1))}
+    .V{background:linear-gradient(180deg,rgba(119,214,139,0.25),rgba(119,214,139,0.1))}
+    .R{background:linear-gradient(180deg,rgba(108,192,255,0.15),rgba(108,192,255,0.05))}
     .row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
     .chip{padding:.3rem .7rem;border:1px solid rgba(255,255,255,.12);border-radius:99px;background:transparent;color:var(--ink);cursor:pointer}
     label{display:block;margin:.45rem 0 .25rem}
@@ -64,7 +61,7 @@
     .h3wrap{display:flex;align-items:center;gap:.4rem;position:relative}
     .h3wrap .info{position:static;margin-left:auto !important}
     .h3wrap .tooltip{right:0;left:auto;top:2.1rem}
-    .sig{display:flex;justify-content:center;align-items:center;gap:.4rem;opacity:.9;font-size:1.05rem;margin-top:1.5rem}
+    .sig{display:flex;justify-content:center;align-items:center;gap:.4rem;opacity:.9;font-size:1.05rem}
     .sig .me{color:#66b3ff;font-weight:700;}
     .sig .ai{color:#00d9ff;font-weight:700;}
   </style>
@@ -86,10 +83,9 @@
     <div class="info" title="Nápověda">ℹ️</div>
     <div class="tooltip">
       Klepni na den pro cyklus směny:
-      <b>R (8h) → D (12h) → N (12h) → V (Dovolená) → smazat</b>.<br>
-      Aplikace nyní počítá 8h i 12h směny dohromady v jednom měsíci.<br>
-      <b>8h Ranní (R):</b> Noční příplatek dle dne (35-60 min), soboty +500 Kč.<br>
-      Státní svátky se označí 🎌.
+      <b>R→D→N→V→prázdno</b>.<br>
+      <b>Přesčasy:</b> Hodiny zadej do pole "Nepřetržitý provoz", počítají se z průměru (1.25x).<br>
+      <b>Madeta:</b> Noční 25 Kč/h, víkend 35 Kč/h. Sobota R +500 Kč.
     </div>
 
     <div id="bg-layer"></div>
@@ -108,18 +104,17 @@
     <table class="calendar" id="cal"></table>
 
     <div class="row" style="margin-top:.6rem;justify-content:flex-start;align-items:center">
-      <span class="chip">Zobrazení:</span>
-      <button class="chip" id="mode12">Styl 12h</button>
-      <button class="chip" id="mode8">Styl 8h</button>
+      <span class="chip">Styl zobrazení:</span>
+      <button class="chip" id="mode12">12 h (D/N/V)</button>
+      <button class="chip" id="mode8">8 h (R/V)</button>
     </div>
   </section>
 
   <aside class="card" id="card-stats">
     <div class="info" title="Nápověda">ℹ️</div>
     <div class="tooltip">
-      Směny <b>D/N</b> = 11.25 h odpracované.<br>
-      Směny <b>R</b> = 8.00 h odpracované.<br>
-      Dovolená (V) se počítá dle zvoleného stylu (11.25 nebo 8.00).
+      Zadej sazby. Přesčasy se počítají jako <b>hodiny × (průměrná náhrada × 1.25)</b>.<br>
+      Sazba pro noční a víkend je nastavena na výchozí Madeta hodnoty.
     </div>
 
     <h3 style="margin-top:0">Statistiky měsíce</h3>
@@ -127,22 +122,25 @@
     <div id="substats" class="note" style="display:none"></div>
 
     <p class="note">
-      Obědy: Všední dny při <b>D</b> nebo <b>R</b>. Soboty při <b>R</b> = stravenka.
+      Obědy jen všední den při denní (12h: D; 8h: R).<br>
+      Dovolená: V = 11.25 h (12h) / 8.00 h (8h). Svátek: průměr.
     </p>
     <hr>
 
     <div class="h3wrap">
       <h3 style="margin:0">Mzda (vstupy)</h3>
       <div class="info" title="Nápověda">ℹ️</div>
-      <div class="tooltip">Vyplň sazby. Průměrná náhrada se používá pro svátky a dovolenou.</div>
+      <div class="tooltip">
+        Základ + příplatky. Dole vyplň „Průměrná náhrada“ (nebo ručně Kč/h).
+      </div>
     </div>
 
     <label>Základní hodinovka</label><input id="rate_base" type="number" step="0.01">
 
     <div class="row" style="width:100%">
       <div style="flex:1;min-width:140px">
-        <label>Základ – tento měsíc (Kč/h)</label>
-        <input id="rate_base_month" type="number" step="0.01" value="">
+        <label>Základ (tento měsíc Kč/h)</label>
+        <input id="rate_base_month" type="number" step="0.01">
       </div>
     </div>
 
@@ -152,7 +150,7 @@
     </div>
     <div class="row" style="width:100%">
       <div style="flex:1;min-width:140px"><label>Víkendový příplatek</label><input id="rate_vikend" type="number" step="0.01"></div>
-      <div style="flex:1;min-width:140px"><label>Nepřetržitý provoz</label><input id="rate_nepretrzity" type="number" step="0.01"></div>
+      <div style="flex:1;min-width:140px"><label>Hodiny přesčasu</label><input id="rate_nepretrzity" type="number" step="0.01"></div>
     </div>
 
     <div class="row" style="width:100%">
@@ -163,8 +161,8 @@
     </div>
 
     <div class="row" style="width:100%">
-      <div style="flex:1;min-width:140px"><label>Přímé prémie (%)</label><input id="bonus_pct" type="number" step="0.1"></div>
-      <div style="flex:1;min-width:140px"><label>Roční motivační (Kč)</label><input id="annual_bonus" type="number" step="1"></div>
+      <div style="flex:1;min-width:140px"><label>Přímé prémie (%)</label><input id="bonus_pct" type="number" step="0.1" value="10"></div>
+      <div style="flex:1;min-width:140px"><label>Roční motivační (Kč)</label><input id="annual_bonus" type="number" step="1" value="0"></div>
     </div>
 
     <div class="row" style="width:100%">
@@ -174,38 +172,59 @@
     <hr>
 
     <div class="h3wrap">
-      <h3 style="margin:0">Průměrná náhrada</h3>
+      <h3 style="margin:0">Průměrná náhrada (M-1 až M-3)</h3>
     </div>
+
+    <div class="row" style="width:100%">
+      <div style="flex:1;min-width:180px"><label>Čistá mzda M-1</label><input id="avg_net1" type="number" step="0.01"></div>
+      <div style="flex:1;min-width:180px"><label>Hodiny M-1</label><input id="avg_h1" type="number" step="0.01"></div>
+    </div>
+    <div class="row" style="width:100%">
+      <div style="flex:1;min-width:180px"><label>Čistá mzda M-2</label><input id="avg_net2" type="number" step="0.01"></div>
+      <div style="flex:1;min-width:180px"><label>Hodiny M-2</label><input id="avg_h2" type="number" step="0.01"></div>
+    </div>
+    <div class="row" style="width:100%">
+      <div style="flex:1;min-width:180px"><label>Čistá mzda M-3</label><input id="avg_net3" type="number" step="0.01"></div>
+      <div style="flex:1;min-width:180px"><label>Hodiny M-3</label><input id="avg_h3" type="number" step="0.01"></div>
+    </div>
+
+    <label>Ruční průměr náhrady (Kč/h)</label><input id="avg_manual" type="number" step="0.01">
     <div id="avg_info" class="subtle">Průměrná náhrada: 0,00 Kč</div>
-    <label>Ruční průměr (Kč/h) — má přednost</label><input id="avg_manual" type="number" step="0.01">
 
     <div id="pay" class="paylist"></div>
 
     <div id="gross" class="result">💼 Hrubá mzda: 0,00 Kč</div>
     <div id="net" class="result">💵 Čistá mzda (odhad): 0,00 Kč</div>
-    <div id="meal" class="result">🍽️ Stravenky/Obědy: 0 ks</div>
-    
+    <div id="meal" class="result">🍽️ Stravenky: 0,00 Kč</div>
+    <div id="cafInfo" class="result">🎁 Cafeterie (mimo mzdu): 0 Kč</div>
+
     <hr>
 
     <div class="h3wrap">
       <h3 style="margin:0">Hodinový audit</h3>
     </div>
     <div class="row" style="margin:.4rem 0">
-      <button class="chip" id="toggleAudit">Zobrazit / skrýt detail po dnech</button>
+      <button class="chip" id="toggleAudit">Zobrazit / skrýt audit</button>
     </div>
-    <div id="audit" style="display:none; font-size:0.85rem; background:rgba(0,0,0,0.2); border-radius:10px; padding:5px"></div>
+    <div id="audit" style="display:none"></div>
 
     <div id="yearSummary"></div>
 
     <hr>
     <div class="sig">
       <span class="me">Hanuman</span>
-      <span style="color:var(--muted); font-size:0.8rem">X</span>
+      <span style="color:#66b3ff;font-weight:700">&nbsp;&amp;&nbsp;</span>
       <span class="ai">Gemini AI</span>
     </div>
-  </aside>
-</div>
-
+<script>
+window.addEventListener('error', (e) => {
+  document.body.insertAdjacentHTML('afterbegin',
+    '<div style="padding:10px;margin:10px;border:1px solid #f66;color:#fdd;background:#300;border-radius:10px;font-family:system-ui">' +
+    '<b>JS ERROR:</b> ' + (e.message || 'unknown') + '</div>'
+  );
+});
+</script>
 <script src="app_v181.js?v=181" defer></script>
 </body>
-</html>
+  </html>
+    
