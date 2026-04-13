@@ -305,47 +305,22 @@ function renderAudit(){
   const rows=computeDailyBreakdown();
   const sum=(k)=>rows.reduce((a,b)=>a+(b[k]||0),0);
   const head = `
-    <div class="payline" style="font-weight:700">
-      <span>Den</span><span>Směna</span><span>Odprac.</span><span>Odpol.</span><span>Noční</span><span>Víkend</span><span>Svátek h</span>
-    </div>`;
-  const body = rows.map(r=>`
-    <div class="payline" style="gap:.6rem">
-      <span>${r.label}.</span>
-      <span>${r.shift||'—'}</span>
-      <span>${r2(r.worked)}</span>
-      <span>${r2(r.afterH)}</span>
-      <span>${r2(r.nightH)}</span>
-      <span>${r2(r.weekendH)}</span>
-      <span>${r2(r.holH)}</span>
-    </div>`).join('');
-  const foot = `
-    <div class="payline" style="font-weight:700">
-      <span>Součet</span><span></span>
-      <span>${r2(sum('worked'))}</span>
-      <span>${r2(sum('afterH'))}</span>
-      <span>${r2(sum('nightH'))}</span>
-      <span>${r2(sum('weekendH'))}</span>
-      <span>${r2(sum('holH'))}</span>
-    </div>`;
-  box.innerHTML = head + body + foot;
-}
-
 function calcPay(){
-  const avg=avgRate();
+  const avg = avgRate();
   updateAvgInfo();
-  const C=state._calc||{hours:0,afterH:0,nightH:0,weekendH:0,vac:0,holWorkedH:0,DAILY_WORKED:12.25,H8:8.0,VAC12:11.25,VAC8:8.0};
+  const C = state._calc || {hours:0,afterH:0,nightH:0,weekendH:0,vac:0,holWorkedH:0,DAILY_WORKED:11.25,H8:8.0,VAC12:11.25,VAC8:8.0};
 
   const ymKey = ym(current);
   const baseRateMonth = nval(state.monthRates?.[ymKey] ?? 0);
   const baseRateGlobal = nval(state.rates['rate_base']);
   const effectiveBaseRate = baseRateMonth > 0 ? baseRateMonth : (baseRateGlobal || 148.50);
 
-  const r={
+  const r = {
     base: effectiveBaseRate,
-    odpo:nval(state.rates['rate_odpo']),
-    noc:nval(state.rates['rate_noc']) || 25,
-    vikend:nval(state.rates['rate_vikend']) || 35,
-    nepretrzity:nval(state.rates['rate_nepretrzity']) // Zde jsou hodiny přesčasu
+    odpo: nval(state.rates['rate_odpo']),
+    noc: nval(state.rates['rate_noc']) || 25,
+    vikend: nval(state.rates['rate_vikend']) || 35,
+    nepretrzity: nval(state.rates['rate_nepretrzity']) // Tady zadáváš HODINY přesčasu
   };
 
   const basePay = r.base * C.hours;
@@ -354,8 +329,8 @@ function calcPay(){
   const wkPay   = r.vikend * C.weekendH;
   const holPay  = avg * C.holWorkedH;
   
-  // ✅ PŘESČASY: Hodiny z pole "Nepřetržitý" × (Průměr × 1.25)
-  const otPay   = r.nepretrzity * (avg * 1.25);
+  // ✅ PŘESČAS PŘÍPLATEK: (Průměr * 0.25) * Hodiny přesčasu
+  const otExtraPay = (avg * 0.25) * r.nepretrzity;
   
   const prime   = basePay * ((state.bonus_pct||0)/100);
   const vacHours = (state.mode==='8' ? 8.0 : 11.25);
@@ -389,8 +364,8 @@ function calcPay(){
   const mc=mealsCalc();
   const mealDeduct = mc.count*MEAL_DEDUCT, lunchDeduct=mc.lunches*LUNCH_DEDUCT, mealValue=mc.count*MEAL_INFO_VALUE;
 
-  // Hrubá mzda (bez Cafeterie)
-  const gross = basePay+odpoPay+nightPay+wkPay+holPay+otPay+prime+vacPay + annualBonus + fund + satBonus;
+  // Hrubá mzda (Základ + Příplatky + ten tvůj 25% příplatek za přesčas)
+  const gross = basePay + odpoPay + nightPay + wkPay + holPay + otExtraPay + prime + vacPay + annualBonus + fund + satBonus;
   const social=Math.round(gross*0.065), health=Math.round(gross*0.045);
   const tax=Math.max(0, (Math.ceil(gross)-social-health)*0.15-2570);
   const net=gross-social-health-tax - (mealDeduct + lunchDeduct);
@@ -398,16 +373,17 @@ function calcPay(){
   const caf = state.cafeteria_ok ? 1000 : 0;
 
   $('pay').innerHTML = [
-    ['Základ',money(basePay)+' '+(baseRateMonth>0?`(měs. ${money(r.base)}/h)`:`(${money(r.base)}/h)`)],
-    ['Odpolední',money(odpoPay)],
-    ['Noční příplatek',money(nightPay)],
-    ['Víkendový příplatek',money(wkPay)],
+    ['Základ', money(basePay)+' '+(baseRateMonth>0?`(měs. ${money(r.base)}/h)`:`(${money(r.base)}/h)`)],
+    ['Odpolední', money(odpoPay)],
+    ['Noční příplatek', money(nightPay)],
+    ['Víkendový příplatek', money(wkPay)],
     ['Soboty (+500/ks)', money(satBonus)],
-    ['Svátek / Přesčas (průměrem)',money(holPay + otPay)],
-    ['Prémie k časové mzdě ('+(state.bonus_pct||0)+'%)',money(prime)],
-    ['Náhrada za dovolenou',money(vacPay)],
-    ['Fond vedoucího (měsíc)',money(fund)],
-    ['Roční motivační',money(annualBonus)],
+    ['Svátek (100% průměru)', money(holPay)],
+    ['Příplatek přesčas (25% z průměru)', money(otExtraPay)],
+    ['Prémie k časové mzdě ('+(state.bonus_pct||0)+'%)', money(prime)],
+    ['Náhrada za dovolenou', money(vacPay)],
+    ['Fond vedoucího (měsíc)', money(fund)],
+    ['Roční motivační', money(annualBonus)],
     ['Srážka stravenky','− '+money(mealDeduct)],
     ['Srážka obědy','− '+money(lunchDeduct)]
   ].map(([k,v])=>`<div class="payline"><span>${k}</span><span><b>${v}</b></span></div>`).join('');
@@ -415,8 +391,6 @@ function calcPay(){
   $('gross').textContent = '💼 Hrubá mzda: ' + money(gross);
   $('net').textContent   = '💵 Čistá mzda (odhad): ' + money(net);
   $('meal').textContent  = '🍽️ Stravenky: ' + mc.count + ' ks — ' + money(mealValue);
-  
-  // ✅ CAFETERIE: Jen jako info řádek
   $('cafInfo').textContent = '🎁 Cafeterie (mimo mzdu): ' + (caf > 0 ? money(caf) : '0 Kč');
 
   const y = current.getFullYear();
@@ -431,6 +405,32 @@ function calcPay(){
 
   renderYearSummary();
 }
+    <div class="payline" style="font-weight:700">
+      <span>Den</span><span>Směna</span><span>Odprac.</span><span>Odpol.</span><span>Noční</span><span>Víkend</span><span>Svátek h</span>
+    </div>`;
+  const body = rows.map(r=>`
+    <div class="payline" style="gap:.6rem">
+      <span>${r.label}.</span>
+      <span>${r.shift||'—'}</span>
+      <span>${r2(r.worked)}</span>
+      <span>${r2(r.afterH)}</span>
+      <span>${r2(r.nightH)}</span>
+      <span>${r2(r.weekendH)}</span>
+      <span>${r2(r.holH)}</span>
+    </div>`).join('');
+  const foot = `
+    <div class="payline" style="font-weight:700">
+      <span>Součet</span><span></span>
+      <span>${r2(sum('worked'))}</span>
+      <span>${r2(sum('afterH'))}</span>
+      <span>${r2(sum('nightH'))}</span>
+      <span>${r2(sum('weekendH'))}</span>
+      <span>${r2(sum('holH'))}</span>
+    </div>`;
+  box.innerHTML = head + body + foot;
+}
+
+
 
 function renderYearSummary(){
   const box = $('yearSummary');
