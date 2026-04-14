@@ -305,11 +305,8 @@ function renderAudit(){
   const rows=computeDailyBreakdown();
   const sum=(k)=>rows.reduce((a,b)=>a+(b[k]||0),0);
   const head = `
-function calcPay(){
-  const avg = avgRate();
-  updateAvgInfo();
-  const C = state._calc || {hours:0,afterH:0,nightH:0,weekendH:0,vac:0,holWorkedH:0};
-function calcPay(){
+  
+  function calcPay(){
   const avg = avgRate();
   updateAvgInfo();
   const C = state._calc || {hours:0,afterH:0,nightH:0,weekendH:0,vac:0,holWorkedH:0};
