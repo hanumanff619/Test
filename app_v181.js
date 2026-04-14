@@ -1,5 +1,5 @@
 // ============================================================================
-// Směnářek 1.8.1 – KOMPLETNÍ FULL VERZE BEZ KRÁCENÍ (Hanuman Edition)
+// Směnářek 1.8.1 – KOMPLETNÍ FULL VERZE (Hanuman Edition - MIX FIX)
 // ============================================================================
 
 const MEAL_DEDUCT = 40;
@@ -14,6 +14,7 @@ const MAP12 = {
 
 const MAP8 = { 
     R: 'R 8h (Po–Pá 05:25 / So–Ne 05:00)', 
+    O: 'O 8h (Odpolední)',
     V: 'Dovolená' 
 };
 
@@ -156,6 +157,8 @@ function updateHeader() {
     if (t !== '—') {
         if (t === 'R') {
             label = isW(today) ? 'R 05:00–13:15' : 'R 05:25–13:59';
+        } else if (t === 'O') {
+            label = 'O 13:59–22:00';
         } else {
             label = MAP12[t] || MAP8[t] || t;
         }
@@ -166,14 +169,15 @@ function updateHeader() {
     setTodayNameday();
 }
 
+// ✅ Hanumanův MIX cyklus s "O"
 function nextCode(cur) {
-    const codes = ["", "R", "D", "N", "V"];
+    const codes = ["", "R", "O", "D", "N", "V"];
     let idx = codes.indexOf(cur);
     return codes[(idx + 1) % codes.length];
 }
 
 function setShift(dateStr, t, rerender = true) {
-    const valid = ['R', 'D', 'N', 'V', ''];
+    const valid = ['R', 'O', 'D', 'N', 'V', ''];
     if (!valid.includes(t)) return;
     if (t === '') {
         delete state.shifts[dateStr];
@@ -193,6 +197,7 @@ function bindInputsOnce() {
         if (!el) return;
         if (id === 'rate_noc' && !state.rates[id]) state.rates[id] = 25;
         if (id === 'rate_vikend' && !state.rates[id]) state.rates[id] = 35;
+        if (id === 'rate_odpo' && !state.rates[id]) state.rates[id] = 6.45; // Madeta odpolední
         el.value = state.rates[id] ?? '';
         el.oninput = () => {
             state.rates[id] = el.value === '' ? null : nval(el.value);
@@ -319,15 +324,16 @@ function refreshMonthScopedInputs() {
     if ($('rate_base_month')) $('rate_base_month').value = state.monthRates[key] ?? '';
 }
 
+// ✅ OPRAVENÉ SČÍTÁNÍ PRO MIX REŽIM
 function updateStats() {
     const y = current.getFullYear();
     const m = current.getMonth();
     const last = new Date(y, m + 1, 0);
     const DAILY_WORKED = 11.25;
-    const VAC12 = 11.25;
-    const H8 = 8.0;
+    const VAC_VAL = state.mode === '8' ? 8.0 : 11.25;
 
-    let dDay = 0, nDay = 0, vac = 0, hours = 0, nightH = 0, afterH = 0, weekendH = 0, holWorkedH = 0, rDays = 0;
+    let dDay = 0, nDay = 0, rDays = 0, oDays = 0, vac = 0;
+    let hours = 0, nightH = 0, afterH = 0, weekendH = 0, holWorkedH = 0;
 
     for (let i = 1; i <= last.getDate(); i++) {
         const dt = new Date(y, m, i);
@@ -335,44 +341,46 @@ function updateStats() {
         const t = state.shifts[key];
         if (!t) continue;
         if (t === 'V') { vac++; continue; }
-        if (t === 'R') {
-            rDays++;
-            hours += H8;
+
+        if (t === 'R' || t === 'O') {
+            const isO = t === 'O';
+            if (isO) oDays++; else rDays++;
+            hours += 8.0;
+            if (isO) afterH += 6.0; // Odpolední O
             nightH += rShiftNightH(dt);
-            if (isW(dt)) weekendH += H8;
-            if (isHoliday(dt)) holWorkedH += H8;
+            if (isW(dt)) weekendH += 8.0;
+            if (isHoliday(dt)) holWorkedH += 8.0;
         } else if (t === 'D') {
             dDay++;
             hours += DAILY_WORKED;
             afterH += 3.75;
             if (isW(dt)) weekendH += DAILY_WORKED;
-            if (isHoliday(dt)) holWorkedH += VAC12;
+            if (isHoliday(dt)) holWorkedH += 11.25;
         } else if (t === 'N') {
             nDay++;
             hours += DAILY_WORKED;
-            afterH += 4;
+            afterH += 4.0;
             nightH += 7.25;
             if (isW(dt)) weekendH += DAILY_WORKED;
-            if (isHoliday(dt)) holWorkedH += VAC12;
+            if (isHoliday(dt)) holWorkedH += 11.25;
             const nextDay = new Date(y, m, i + 1);
             if (isHoliday(nextDay)) holWorkedH += 6;
         }
     }
 
     if ($('stats')) {
-        const head = state.mode === '8' ? `Ranní: <b>${rDays}</b> • Dovolené: <b>${vac}</b>` : `Denní: <b>${dDay}</b> • Noční: <b>${nDay}</b> • Dovolené: <b>${vac}</b>`;
-        $('stats').innerHTML = head + `<br>Hodiny: <b>${r2(hours)}</b><br>Svátek odpracovaný: <b>${r2(holWorkedH)} h</b>`;
+        $('stats').innerHTML = `R:${rDays} O:${oDays} D:${dDay} N:${nDay} V:${vac}<br>Hodiny: <b>${r2(hours)}</b> | Svátek: <b>${r2(holWorkedH)}h</b>`;
     }
 
     if ($('substats')) {
         $('substats').style.display = 'block';
         $('substats').innerHTML = [
             `<div class="payline"><span>Odpolední hodiny</span><span><b>${r2(afterH)}</b> h</span></div>`,
-            `<div class="payline"><span>Noční hodiny (22–6)</span><span><b>${r2(nightH)}</b> h</span></div>`,
+            `<div class="payline"><span>Noční hodiny</span><span><b>${r2(nightH)}</b> h</span></div>`,
             `<div class="payline"><span>Víkendové hodiny</span><span><b>${r2(weekendH)}</b> h</span></div>`
         ].join('');
     }
-    state._calc = { hours, afterH, nightH, weekendH, vac, holWorkedH, DAILY_WORKED, H8, VAC12 };
+    state._calc = { hours, afterH, nightH, weekendH, vac, holWorkedH, DAILY_WORKED, VAC_VAL };
     save();
 }
 
@@ -418,8 +426,9 @@ function computeDailyBreakdown() {
         const key = ymd(dt);
         const t = state.shifts[key] || '';
         let w = 0, a = 0, n = 0, wk = 0, h = 0;
-        if (t === 'R') {
+        if (t === 'R' || t === 'O') {
             w = 8; n = rShiftNightH(dt);
+            if (t === 'O') a = 6;
             if (isW(dt)) wk = 8;
             if (isHoliday(dt)) h = 8;
         } else if (t === 'D') {
@@ -459,20 +468,20 @@ function calcPay() {
 
     const r = {
         b: effB,
-        o: nval(state.rates['rate_odpo']),
+        o: nval(state.rates['rate_odpo']) || 6.45,
         n: nval(state.rates['rate_noc']) || 25,
         v: nval(state.rates['rate_vikend']) || 35,
         nep: nval(state.rates['rate_nepretrzity'])
     };
 
     const basePay = r.b * C.hours;
+    const odpoPay = r.o * C.afterH;
     const nightPay = r.n * C.nightH;
     const weekPay = r.v * C.weekendH;
     const holPay = avg * C.holWorkedH;
     const otExtraPay = (avg * 0.25) * r.nep;
     const primeP = basePay * (nval(state.bonus_pct) / 100);
-    const vH = (state.mode === '8' ? 8 : 11.25);
-    const vacPay = vH * avg * C.vac;
+    const vacPay = (C.VAC_VAL || 11.25) * avg * C.vac;
 
     const annB = (current.getMonth() === 5 || current.getMonth() === 10 ? nval(state.annual_bonus) : 0);
     const fund = nval(state.monthFunds[ymKey]);
@@ -490,12 +499,12 @@ function calcPay() {
         if (!t || t === 'V') continue;
         if (t === 'N') mc += 2;
         else if (t === 'D') { if (isW(dt)) mc += 2; else { mc += 1; lc++; } }
-        else if (t === 'R') { if (isSat(dt)) mc += 1; else if (!isW(dt)) lc++; }
+        else if (t === 'R' || t === 'O') { if (isSat(dt)) mc += 1; else if (!isW(dt)) lc++; }
     }
 
     const mD = mc * MEAL_DEDUCT;
     const lD = lc * LUNCH_DEDUCT;
-    const gross = basePay + nightPay + weekPay + holPay + otExtraPay + primeP + vacPay + annB + fund + satB;
+    const gross = basePay + odpoPay + nightPay + weekPay + holPay + otExtraPay + primeP + vacPay + annB + fund + satB;
 
     const soc = Math.round(gross * 0.065);
     const hlth = Math.round(gross * 0.045);
@@ -504,6 +513,7 @@ function calcPay() {
 
     $('pay').innerHTML = [
         ['Základ', money(basePay) + ` (${r.b} Kč/h)`],
+        ['Odpolední příplatek', money(odpoPay)],
         ['Noční příplatek', money(nightPay)],
         ['Víkendový příplatek', money(weekPay)],
         ['Soboty R (+500/ks)', money(satB)],
@@ -513,15 +523,13 @@ function calcPay() {
         ['Náhrada za dovolenou', money(vacPay)],
         ['Fond vedoucího (měsíc)', money(fund)],
         ['Roční motivační', money(annB)],
-        ['Srážka stravenky', '− ' + money(mD)],
-        ['Srážka obědy', '− ' + money(lD)]
+        ['Srážky obědy/stravenky', '− ' + money(mD+lD)]
     ].map(([k, v]) => `<div class="payline"><span>${k}</span><span><b>${v}</b></span></div>`).join('');
 
     $('gross').textContent = '💼 Hrubá mzda: ' + money(gross);
     $('net').textContent = '💵 Čistá mzda (odhad): ' + money(net);
     $('meal').textContent = '🍽️ Stravenky: ' + mc + ' ks — ' + money(mc * 110);
-    $('cafInfo').textContent = '🎁 Cafeterie (mimo čistou): ' + (state.cafeteria_ok ? '1 000,00 Kč' : '0 Kč');
-
+    
     state.yearSummary[current.getFullYear()] = state.yearSummary[current.getFullYear()] || {};
     state.yearSummary[current.getFullYear()][current.getMonth()] = { gross, net, hours: C.hours, mealCount: mc, mealValue: mc * 110, ts: Date.now() };
     save();
@@ -541,9 +549,10 @@ function renderYearSummary() {
         sMC += rows[m].mealCount || 0;
         sMV += rows[m].mealValue || 0;
     });
-    box.innerHTML = `<hr><div class="payline"><span>Hrubá (rok ${y})</span><span><b>${money(sG)}</b></span></div><div class="payline"><span>Čistá (rok ${y})</span><span><b>${money(sN)}</b></span></div><div class="payline"><span>Stravenky (rok ${y})</span><span><b>${sMC} ks — ${money(sMV)}</b></span></div><div class="subtle">Započítáno měsíců: ${months.length}</div>`;
+    box.innerHTML = `<hr><div class="payline"><span>Hrubá (rok ${y})</span><span><b>${money(sG)}</b></span></div><div class="payline"><span>Čistá (rok ${y})</span><span><b>${money(sN)}</b></span></div><div class="payline"><span>Stravenky (rok ${y})</span><span><b>${sMC} ks — ${money(sMV)}</b></span></div>`;
 }
 
+// ✅ VYKRESLENÍ S HODINAMI V BADGI
 function renderCalendar() {
     document.body.classList.toggle('mode8', state.mode === '8');
     applyBackground();
@@ -566,13 +575,20 @@ function renderCalendar() {
             const dt = new Date(y, m, day);
             const key = ymd(dt);
             const t = state.shifts[key] || "";
+            
+            // ✅ Badge s hodinami
+            let displayTag = t;
+            if (t === 'D' || t === 'N') displayTag = t + ' (11.25)';
+            if (t === 'R' || t === 'O') displayTag = t + ' (8.00)';
+
             html += `<td data-date="${key}" class="${t} ${selectedDate === key ? 'selected' : ''} ${key === todayKey ? 'today' : ''}">
                  <div class="daynum">${day}${isHoliday(dt) ? ' 🎌' : ''}</div>
-                 ${t ? `<span class="badge">${t}</span>` : ''}
+                 ${t ? `<span class="badge">${displayTag}</span>` : ''}
                </td>`;
             day++;
         }
         html += "</tr>";
+        if (day > total) break;
     }
     $('cal').innerHTML = html + "</tbody>";
     $('cal').querySelectorAll('td[data-date]').forEach(td => {
