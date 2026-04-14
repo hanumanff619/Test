@@ -308,7 +308,7 @@ function renderAudit(){
 function calcPay(){
   const avg = avgRate();
   updateAvgInfo();
-  const C = state._calc || {hours:0,afterH:0,nightH:0,weekendH:0,vac:0,holWorkedH:0,DAILY_WORKED:11.25,H8:8.0,VAC12:11.25,VAC8:8.0};
+  const C = state._calc || {hours:0,afterH:0,nightH:0,weekendH:0,vac:0,holWorkedH:0};
 
   const ymKey = ym(current);
   const baseRateMonth = nval(state.monthRates?.[ymKey] ?? 0);
@@ -320,91 +320,70 @@ function calcPay(){
     odpo: nval(state.rates['rate_odpo']),
     noc: nval(state.rates['rate_noc']) || 25,
     vikend: nval(state.rates['rate_vikend']) || 35,
-    nepretrzity: nval(state.rates['rate_nepretrzity']) // Tady zadáváš HODINY přesčasu
+    nepretrzity: nval(state.rates['rate_nepretrzity']) // Hodiny přesčasu
   };
 
   const basePay = r.base * C.hours;
-  const odpoPay = r.odpo * C.afterH;
-  const nightPay= r.noc  * C.nightH;
-  const wkPay   = r.vikend * C.weekendH;
-  const holPay  = avg * C.holWorkedH;
-  
-  // ✅ PŘESČAS PŘÍPLATEK: (Průměr * 0.25) * Hodiny přesčasu
+  const nP = r.noc * C.nightH;
+  const wP = r.vikend * C.weekendH;
+  const hP = avg * C.holWorkedH;
+  const prP = basePay * (nval(state.bonus_pct)/100);
+  const vH = (state.mode==='8'?8:11.25);
+  const vP = vH * avg * C.vac;
+
+  // ✅ PŘESČAS PŘÍPLATEK: 25 % z průměru * hodiny (žádné násobení celým měsícem!)
   const otExtraPay = (avg * 0.25) * r.nepretrzity;
+
+  const annB = (current.getMonth()===5||current.getMonth()===10 ? nval(state.annual_bonus) : 0);
+  const fund = nval(state.monthFunds[ymKey]);
   
-  const prime   = basePay * ((state.bonus_pct||0)/100);
-  const vacHours = (state.mode==='8' ? 8.0 : 11.25);
-  const vacPay  = vacHours * avg * C.vac;
-
-  const month = current.getMonth();
-  const annualBonus = (month===5 || month===10) ? (state.annual_bonus||0) : 0;
-  const fund = nval(state.monthFunds?.[ymKey] ?? 0);
-
-  function saturdayBonus(){
-    let y=current.getFullYear(), m=current.getMonth(), end=new Date(y,m+1,0), sum=0;
-    for(let i=1;i<=end.getDate();i++){
-      const dt=new Date(y,m,i), key=ymd(dt), t=state.shifts[key];
-      if(t==='R' && isSat(dt)) sum += 500;
-    }
-    return sum;
+  let sB=0; 
+  for(let i=1; i<=daysIn(current.getFullYear(),current.getMonth()); i++){ 
+    const dt=new Date(current.getFullYear(),current.getMonth(),i); 
+    if(state.shifts[ymd(dt)]==='R' && isSat(dt)) sB+=500; 
   }
-  const satBonus = saturdayBonus();
 
-  function mealsCalc(){
-    let y=current.getFullYear(), m=current.getMonth(), end=new Date(y,m+1,0), count=0, lunches=0;
-    for(let i=1;i<=end.getDate();i++){
-      const dt=new Date(y,m,i), key=ymd(dt), t=state.shifts[key];
-      if(!t||t==='V') continue;
-      if(t==='N') { count+=2; }
-      else if(t==='D') { if(isW(dt)) count+=2; else { count+=1; lunches++; } }
-      else if(t==='R') { if(isSat(dt)) count+=1; else if(!isW(dt)) lunches++; }
-    }
-    return {count,lunches};
+  let mc=0, lc=0; 
+  for(let i=1; i<=daysIn(current.getFullYear(),current.getMonth()); i++){ 
+    const dt=new Date(current.getFullYear(),current.getMonth(),i), t=state.shifts[ymd(dt)]; 
+    if(!t||t==='V')continue; 
+    if(t==='N') mc+=2; 
+    else if(t==='D'){ if(isW(dt)) mc+=2; else { mc+=1; lc++; } } 
+    else if(t==='R'){ if(isSat(dt)) mc+=1; else if(!isW(dt)) lc++; } 
   }
-  const mc=mealsCalc();
-  const mealDeduct = mc.count*MEAL_DEDUCT, lunchDeduct=mc.lunches*LUNCH_DEDUCT, mealValue=mc.count*MEAL_INFO_VALUE;
 
-  // Hrubá mzda (Základ + Příplatky + ten tvůj 25% příplatek za přesčas)
-  const gross = basePay + odpoPay + nightPay + wkPay + holPay + otExtraPay + prime + vacPay + annualBonus + fund + satBonus;
-  const social=Math.round(gross*0.065), health=Math.round(gross*0.045);
-  const tax=Math.max(0, (Math.ceil(gross)-social-health)*0.15-2570);
-  const net=gross-social-health-tax - (mealDeduct + lunchDeduct);
+  const mD=mc*MEAL_DEDUCT, lD=lc*LUNCH_DEDUCT;
+  
+  // FINÁLNÍ HRUBÁ - bez duplicitních proměnných
+  const gross = basePay + nP + wP + hP + otExtraPay + prP + vP + annB + fund + sB;
 
-  const caf = state.cafeteria_ok ? 1000 : 0;
+  const soc = Math.round(gross*0.065), hlth = Math.round(gross*0.045);
+  const tax = Math.max(0, (Math.ceil(gross)-soc-hlth)*0.15-2570);
+  const net = gross - soc - hlth - tax - (mD + lD);
 
   $('pay').innerHTML = [
-    ['Základ', money(basePay)+' '+(baseRateMonth>0?`(měs. ${money(r.base)}/h)`:`(${money(r.base)}/h)`)],
-    ['Odpolední', money(odpoPay)],
-    ['Noční příplatek', money(nightPay)],
-    ['Víkendový příplatek', money(wkPay)],
-    ['Soboty (+500/ks)', money(satBonus)],
-    ['Svátek (100% průměru)', money(holPay)],
+    ['Základ', money(basePay)],
+    ['Noční příplatek', money(nP)],
+    ['Víkendový příplatek', money(wP)],
+    ['Soboty R (+500/ks)', money(sB)],
+    ['Svátek (100% průměru)', money(hP)],
     ['Příplatek přesčas (25% z průměru)', money(otExtraPay)],
-    ['Prémie k časové mzdě ('+(state.bonus_pct||0)+'%)', money(prime)],
-    ['Náhrada za dovolenou', money(vacPay)],
-    ['Fond vedoucího (měsíc)', money(fund)],
-    ['Roční motivační', money(annualBonus)],
-    ['Srážka stravenky','− '+money(mealDeduct)],
-    ['Srážka obědy','− '+money(lunchDeduct)]
+    ['Prémie ('+(state.bonus_pct||0)+'%)', money(prP)],
+    ['Dovolená', money(vP)],
+    ['Srážka stravenky/obědy', '− '+money(mD+lD)]
   ].map(([k,v])=>`<div class="payline"><span>${k}</span><span><b>${v}</b></span></div>`).join('');
 
   $('gross').textContent = '💼 Hrubá mzda: ' + money(gross);
-  $('net').textContent   = '💵 Čistá mzda (odhad): ' + money(net);
-  $('meal').textContent  = '🍽️ Stravenky: ' + mc.count + ' ks — ' + money(mealValue);
-  $('cafInfo').textContent = '🎁 Cafeterie (mimo mzdu): ' + (caf > 0 ? money(caf) : '0 Kč');
+  $('net').textContent = '💵 Čistá mzda (odhad): ' + money(net);
+  $('meal').textContent = '🍽️ Stravenky: ' + mc + ' ks';
+  $('cafInfo').textContent = '🎁 Cafeterie: ' + (state.cafeteria_ok ? '1 000 Kč' : '0 Kč');
 
-  const y = current.getFullYear();
-  if(!state.yearSummary[y]) state.yearSummary[y]={};
-  state.yearSummary[y][current.getMonth()] = {
-    gross, net, hours: C.hours, mealCount: mc.count, mealValue: mealValue, ts: Date.now()
-  };
-  save();
-
-  const auditBox=$('audit');
-  if(auditBox && auditBox.style.display==='block') renderAudit();
-
+  state.yearSummary[current.getFullYear()] = state.yearSummary[current.getFullYear()] || {};
+  state.yearSummary[current.getFullYear()][current.getMonth()] = { gross, net, hours: C.hours, ts: Date.now() };
+  save(); 
   renderYearSummary();
 }
+
     <div class="payline" style="font-weight:700">
       <span>Den</span><span>Směna</span><span>Odprac.</span><span>Odpol.</span><span>Noční</span><span>Víkend</span><span>Svátek h</span>
     </div>`;
