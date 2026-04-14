@@ -309,6 +309,10 @@ function calcPay(){
   const avg = avgRate();
   updateAvgInfo();
   const C = state._calc || {hours:0,afterH:0,nightH:0,weekendH:0,vac:0,holWorkedH:0};
+function calcPay(){
+  const avg = avgRate();
+  updateAvgInfo();
+  const C = state._calc || {hours:0,afterH:0,nightH:0,weekendH:0,vac:0,holWorkedH:0};
 
   const ymKey = ym(current);
   const baseRateMonth = nval(state.monthRates?.[ymKey] ?? 0);
@@ -383,6 +387,15 @@ function calcPay(){
   save(); 
   renderYearSummary();
 }
+  const ymKey = ym(current);
+  const baseRateMonth = nval(state.monthRates?.[ymKey] ?? 0);
+  const baseRateGlobal = nval(state.rates['rate_base']);
+  const effectiveBaseRate = baseRateMonth > 0 ? baseRateMonth : (baseRateGlobal || 148.50);
+
+  const r = {
+    base: effectiveBaseRate,
+    odpo: nval(state.rates['rate_odpo']),
+    noc: nval(state.rates['rate_noc']) || 25,
 
     <div class="payline" style="font-weight:700">
       <span>Den</span><span>Směna</span><span>Odprac.</span><span>Odpol.</span><span>Noční</span><span>Víkend</span><span>Svátek h</span>
