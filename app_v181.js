@@ -510,7 +510,11 @@ function calcPay() {
     const hlth = Math.round(gross * 0.045);
     const tax = Math.max(0, (Math.ceil(gross) - soc - hlth) * 0.15 - 2570);
     const net = gross - soc - hlth - tax - (mD + lD);
-
+    // ✅ Tohle zajistí, že se tam ta 1000 objeví
+    const cafVal = state.cafeteria_ok ? '1 000,00 Kč' : '0,00 Kč';
+    if ($('cafInfo')) {
+    $('cafInfo').innerHTML = `🎁 Cafeterie (mimo čistou): <b>${cafVal}</b>`;
+}
     $('pay').innerHTML = [
         ['Základ', money(basePay) + ` (${r.b} Kč/h)`],
         ['Odpolední příplatek', money(odpoPay)],
@@ -529,11 +533,6 @@ function calcPay() {
     $('gross').textContent = '💼 Hrubá mzda: ' + money(gross);
     $('net').textContent = '💵 Čistá mzda (odhad): ' + money(net);
     $('meal').textContent = '🍽️ Stravenky: ' + mc + ' ks — ' + money(mc * 110);
-    // ✅ Tohle zajistí, že se tam ta 1000 objeví
-const cafVal = state.cafeteria_ok ? '1 000,00 Kč' : '0,00 Kč';
-if ($('cafInfo')) {
-    $('cafInfo').innerHTML = `🎁 Cafeterie (mimo čistou): <b>${cafVal}</b>`;
-}
     
     state.yearSummary[current.getFullYear()] = state.yearSummary[current.getFullYear()] || {};
     state.yearSummary[current.getFullYear()][current.getMonth()] = { gross, net, hours: C.hours, mealCount: mc, mealValue: mc * 110, ts: Date.now() };
