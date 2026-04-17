@@ -529,6 +529,11 @@ function calcPay() {
     $('gross').textContent = '💼 Hrubá mzda: ' + money(gross);
     $('net').textContent = '💵 Čistá mzda (odhad): ' + money(net);
     $('meal').textContent = '🍽️ Stravenky: ' + mc + ' ks — ' + money(mc * 110);
+    // ✅ Tohle zajistí, že se tam ta 1000 objeví
+const cafVal = state.cafeteria_ok ? '1 000,00 Kč' : '0,00 Kč';
+if ($('cafInfo')) {
+    $('cafInfo').innerHTML = `🎁 Cafeterie (mimo čistou): <b>${cafVal}</b>`;
+}
     
     state.yearSummary[current.getFullYear()] = state.yearSummary[current.getFullYear()] || {};
     state.yearSummary[current.getFullYear()][current.getMonth()] = { gross, net, hours: C.hours, mealCount: mc, mealValue: mc * 110, ts: Date.now() };
