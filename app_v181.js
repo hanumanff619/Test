@@ -412,13 +412,41 @@ function updateStats() {
 
 
 function avgRate() {
+    // 1. Priorita: Ruční zadání z pásky (třeba těch tvých 253.24)
     const man = nval(state.avg.avg_manual);
-    if (man > 0) return man;
-    const sNet = nval(state.avg.net1) + nval(state.avg.net2) + nval(state.avg.net3);
-    const sH = nval(state.avg.h1) + nval(state.avg.h2) + nval(state.avg.h3);
-    if (sNet > 0 && sH > 0) return sNet / sH;
-    return 253.24;
+    if (man > 0) {
+        // Pokud máš něco v políčku, apka nic nepočítá a bere tohle
+        if ($('avg_info')) $('avg_info').innerHTML = `Průměr z pásky (ručně): <b>${money(man)}</b>`;
+        return man;
+    }
+
+    // 2. Priorita: Automatika z historie (když políčko smažeš)
+    const y = current.getFullYear();
+    const m = current.getMonth();
+    let sumNet = 0;
+    let sumHours = 0;
+
+    for (let i = 1; i <= 3; i++) {
+        let d = new Date(y, m - i, 1);
+        let sy = d.getFullYear(), sm = d.getMonth();
+        if (state.yearSummary[sy] && state.yearSummary[sy][sm]) {
+            const h = state.yearSummary[sy][sm];
+            sumNet += (h.net || 0);
+            sumHours += (h.hours || 0);
+        }
+    }
+
+    if (sumNet > 0 && sumHours > 0) {
+        const calculatedAvg = sumNet / sumHours;
+        if ($('avg_info')) $('avg_info').innerHTML = `Auto průměr z historie: <b>${calculatedAvg.toFixed(2)} Kč/h</b>`;
+        return calculatedAvg;
+    }
+
+    // 3. Nouzovka: Jen když je apka prázdná a nic jsi nezadal
+    if ($('avg_info')) $('avg_info').innerHTML = `Zadejte průměr z pásky!`;
+    return 0; 
 }
+
 
 function updateAvgInfo() {
     const v = avgRate();
