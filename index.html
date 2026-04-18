@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Směnářek - Madeta Edition</title>
+  <title>Směnářek - Family Edition</title>
   <meta name="theme-color" content="#102a4a">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png">
@@ -12,7 +12,10 @@
       --bg:#0c1d33; --panel:#122e52; --ink:#eaf2ff; --muted:#a9c3e6; --accent:#6cc0ff;
       --sel:#1e78d799; --good:#5bd39a; --goodtext:#9ff3cd; --field:#0b213d; --border:#1f3f66;
     }
-    body.mode8{ --accent:#b38cff; --sel:#7b3ff299; }
+    /* Módy barev */
+    body.mode8 { --accent:#b38cff; --sel:#7b3ff299; }
+    body.mode775 { --accent:#d38cff; --sel:#a63ff299; } /* Fialová pro mladou */
+
     html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto}
     *{box-sizing:border-box}
     header{position:sticky;top:0;z-index:5;background:linear-gradient(180deg,rgba(12,29,51,.95),rgba(12,29,51,.7));backdrop-filter:blur(6px)}
@@ -30,7 +33,7 @@
     .calendar th{color:var(--muted);font-weight:600;text-align:center;background:rgba(14,38,70,.45)}
     .calendar td{height:92px;position:relative;background:rgba(15,39,72,.26);transition:background .15s ease}
     .calendar td.selected{background:var(--sel)!important;box-shadow:inset 0 0 0 2px #75c7ff99}
-    .calendar td.today:not(.selected){box-shadow:inset 0 0 0 2px rgba(108,192,255,.75)}
+    .calendar td.today:not(.selected){box-shadow:inset 0 0 0 2px var(--accent)}
     .daynum{position:absolute;top:.35rem;right:.35rem;color:var(--muted);font-size:.85rem}
     .badge{display:inline-block;margin-top:1.2rem;padding:.2rem .5rem;border-radius:8px;font-size:.85rem;background:rgba(0,0,0,0.3);font-weight:700}
     .D, .R {background:linear-gradient(180deg,rgba(108,192,255,.15),rgba(108,192,255,.10))}
@@ -42,12 +45,11 @@
     .O .badge { color: #ff7ac8; border: 1px solid #ff7ac8; }
     .V .badge { color: #9ff3cd; border: 1px solid #9ff3cd; }
     .row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
-    .chip{padding:.3rem .7rem;border:1px solid rgba(255,255,255,.12);border-radius:99px;background:transparent;color:var(--ink);cursor:pointer}
+    .chip{padding:.3rem .7rem;border:1px solid rgba(255,255,255,.12);border-radius:99px;background:transparent;color:var(--ink);cursor:pointer;font-weight:600}
     label{display:block;margin:.45rem 0 .25rem}
     input[type="number"]{width:100%;padding:.6rem .7rem;border-radius:12px;border:1px solid var(--border);background:var(--field);color:var(--ink)}
     .payline{display:flex;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid rgba(255,255,255,.08)}
     
-    /* ✅ JEDNA ZELENÁ PRO VŠECHNY PENÍZE */
     .result {
       margin-top:.6rem; padding:.7rem .9rem; border-radius:12px; 
       border:1px solid rgba(255,255,255,.12); 
@@ -58,6 +60,7 @@
     #bg-layer {
       position: absolute; inset: 0; background-size: cover; 
       background-position: center; opacity: 0.34; pointer-events: none;
+      border-radius: 18px;
     }
     .subtle{color:var(--muted);margin-top:.2rem}
     hr{border:none;height:1px;background:rgba(255,255,255,.1);margin:1rem 0}
@@ -77,7 +80,11 @@
       <div class="row"><button class="chip" id="setToday">Dnes</button><button class="chip" id="clearDay">Smazat den</button></div>
     </div>
     <table class="calendar" id="cal"></table>
-    <div class="row" style="margin-top:.6rem"><button class="chip" id="mode12">12 h</button><button class="chip" id="mode8">8 h</button></div>
+    <div class="row" style="margin-top:.6rem">
+      <button class="chip" id="mode12">12 h</button>
+      <button class="chip" id="mode8">8 h</button>
+      <button class="chip" id="mode775">7.75 h</button>
+    </div>
   </section>
   <aside class="card">
     <h3 style="margin-top:0">Statistiky měsíce</h3>
@@ -90,9 +97,9 @@
     </div>
     <div class="row">
         <div style="flex:1"><label>Víkend</label><input id="rate_vikend" type="number" step="0.01"></div>
-        <div style="flex:1"><label>Přesčas h</label><input id="rate_nepretrzity" type="number" step="0.01"></div>
+        <div style="flex:1"><label>Přesčas h (Manuální)</label><input id="rate_nepretrzity" type="number" step="0.01"></div>
     </div>
-    <div class="row" style="margin:.5rem 0"><input id="caf_check" type="checkbox"><label for="caf_check" style="margin:0">Cafeterie 1000 Kč</label></div>
+    <div class="row" style="margin:.5rem 0"><input id="caf_check" type="checkbox" style="width:auto"><label for="caf_check" style="margin:0">Cafeterie 1000 Kč</label></div>
     <div class="row">
         <div style="flex:1"><label>Prémie %</label><input id="bonus_pct" type="number" step="0.1"></div>
         <div style="flex:1"><label>Motivační</label><input id="annual_bonus" type="number" step="1"></div>
@@ -109,12 +116,12 @@
     <div id="avg_info" class="subtle"></div>
     <div id="pay"></div>
     <div id="gross" class="result">💼 Hrubá mzda: 0,00 Kč</div>
-    <div id="net" class="result">💵 Čistá mzda: 0,00 Kč</div>
+    <div id="net" class="result">💵 Čistá mzda (odhad): 0,00 Kč</div>
     <div id="meal" class="result">🍽️ Stravenky: 0 ks</div>
     <div id="cafInfo" class="result">🎁 Cafeterie: 0,00 Kč</div>
     <hr><button class="chip" id="toggleAudit">Audit</button><div id="audit" style="display:none"></div>
     <div id="yearSummary"></div>
-    <div class="sig"><span style="color:#6cc0ff;font-weight:700">Hanuman & Gemini AI</span></div>
+    <div class="sig"><span style="color:#6cc0ff;font-weight:700">Hanuman & Gemini AI v1.8.1</span></div>
   </aside>
 </div>
 <script src="app_v181.js" defer></script>
