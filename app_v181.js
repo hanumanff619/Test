@@ -350,34 +350,45 @@ function updateStats() {
         const dt = new Date(y, m, i);
         const key = ymd(dt);
         const t = state.shifts[key];
-        if (!t) continue;
-        const isH = isHoliday(dt), isWk = isW(dt);
+        const isH = isHoliday(dt);
+        const isWk = isW(dt);
 
+        // 1. NEODPRACOVANÝ SVÁTEK (Všední den, prázdné políčko)
+        // Platí se jen v režimu 8h a 7.75h jako náhrada (z průměru)
+        if (isH && !isWk && !t) {
+            if (state.mode === '8' || state.mode === '7.75') {
+                holWorkedH += shiftH; 
+            }
+            continue;
+        }
+
+        if (!t) continue;
         if (t === 'V') { vac++; continue; }
 
-        let currentH = (t === 'R' || t === 'O') ? shiftH : DAILY_WORKED;
-        if (isH || isWk) autoOT += currentH;
+        let curH = (t === 'R' || t === 'O') ? shiftH : DAILY_WORKED;
 
+        // 2. AUTOMATICKÝ PŘESČAS (Příplatek 25% průměru v calcPay)
+        // Počítá se vždy, když se o víkendu nebo svátku reálně pracuje
+        if (isH || isWk) autoOT += curH;
+
+        // 3. ODPRACCOVANÉ SMĚNY
         if (t === 'R' || t === 'O') {
             if (t === 'O') oDays++; else rDays++;
-            hours += shiftH;
+            hours += shiftH; // Základní mzda (hodiny)
             if (t === 'O') afterH += 7.75;
             nightH += rShiftNightH(dt);
             if (isWk) weekendH += shiftH;
-            if (isH) holWorkedH += shiftH;
+            if (isH) holWorkedH += shiftH; // Náhrada 100% průměru
         } else if (t === 'D') {
-            dDay++;
-            hours += DAILY_WORKED;
-            afterH += 3.75;
-            if (isWk) weekendH += DAILY_WORKED;
-            if (isH) holWorkedH += VAC12;
+            dDay++; hours += DAILY_WORKED; afterH += 3.75;
+            if (isWk) weekendH += DAILY_WORKED; 
+            if (isH) holWorkedH += DAILY_WORKED; // Náhrada 100% průměru
         } else if (t === 'N') {
-            nDay++;
-            hours += DAILY_WORKED;
-            afterH += 4;
-            nightH += 7.25;
-            if (isWk) weekendH += DAILY_WORKED;
-            if (isH) holWorkedH += VAC12;
+            nDay++; hours += DAILY_WORKED; afterH += 4; nightH += 7.25;
+            if (isWk) weekendH += DAILY_WORKED; 
+            if (isH) holWorkedH += DAILY_WORKED; // Náhrada 100% průměru
+            
+            // Přesah noční do svátku (příplatek za hodiny v dalším dni)
             const nextDay = new Date(y, m, i + 1);
             if (isHoliday(nextDay)) holWorkedH += 6;
         }
@@ -398,6 +409,7 @@ function updateStats() {
     state._calc = { hours, afterH, nightH, weekendH, vac, holWorkedH, DAILY_WORKED, H8: shiftH, VAC12, autoOT };
     save();
 }
+
 
 function avgRate() {
     const man = nval(state.avg.avg_manual);
