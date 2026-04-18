@@ -443,27 +443,39 @@ function calcPay() {
     const annB = (current.getMonth() === 5 || current.getMonth() === 10 ? nval(state.annual_bonus) : 0);
     const fund = nval(state.monthFunds[ymKey]);
 
-    let satB = 0, mc = 0, lc = 0;
+        let mc = 0, lc = 0, satB = 0;
     for (let i = 1; i <= daysIn(current.getFullYear(), current.getMonth()); i++) {
         const dt = new Date(current.getFullYear(), current.getMonth(), i);
         const t = state.shifts[ymd(dt)];
         if (!t || t === 'V') continue;
         const noL = isSat(dt) || isHoliday(dt);
 
-        if (t === 'N') mc += 2;
+        if (t === 'N') {
+            mc += 2; // Noční - ty zůstávají (2 stravenky)
+        }
         else if (t === 'D') { 
             if (isW(dt)) mc += 2; 
             else { mc += 1; if(!noL) lc++; else mc++; } 
         }
         else if (t === 'R' || t === 'O') { 
             if (t === 'R' && isSat(dt)) satB += 500;
-            if (isSat(dt)) mc += 1; 
-            else if (!isW(dt)) {
-                if (!noL && !(state.mode === '7.75' && t === 'O')) lc++; 
-                else mc++; 
+            
+            // LOGIKA PRO MLADOU (7.75h)
+            if (state.mode === '7.75') {
+                // Ranní: Vaří si doma = 0 obědů, 0 stravenek
+                // Odpolední: Jen 1 stravenka
+                if (t === 'O') mc += 1; 
+            } 
+            // LOGIKA PRO TEBE (12h / 8h)
+            else {
+                if (isSat(dt)) mc += 1; 
+                else if (!isW(dt)) {
+                    if(!noL) lc++; else mc++; 
+                }
             }
         }
     }
+
 
     const mealDeduct = mc * MEAL_DEDUCT;
     const lunchDeduct = lc * LUNCH_DEDUCT;
