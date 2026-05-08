@@ -324,14 +324,7 @@ function bindInputsOnce() {
             renderCalendar();
         };
     }
-    if ($('toggleAudit')) {
-        $('toggleAudit').onclick = () => {
-            const box = $('audit');
-            if (!box) return;
-            box.style.display = (box.style.display === 'none' || !box.style.display) ? 'block' : 'none';
-            if (box.style.display === 'block') renderAudit();
-        };
-    }
+    // AUDIT SMAZÁN Z LOGIKY
 }
 
 function refreshMonthScopedInputs() {
@@ -475,7 +468,15 @@ function calcPay() {
     // PŘÍPLATEK FERRARI (Ztížené prostředí - Hluk)
     const hlukPay = C.fDays * (7.75 * 6);
 
-    const annB = (current.getMonth() === 5 || current.getMonth() === 10 ? nval(state.annual_bonus) : 0);
+    // FIX: Motivační bonus je 8000 v červnu (5) a listopadu (10), jinak nula (nebo co je v políčku)
+    const currentMonth = current.getMonth();
+    let annB = 0;
+    if (currentMonth === 5 || currentMonth === 10) {
+        annB = 8000;
+    } else {
+        annB = nval(state.annual_bonus);
+    }
+
     const fund = nval(state.monthFunds[ymKey]);
 
     let mc = 0, lc = 0, satB = 0;
@@ -529,6 +530,8 @@ function calcPay() {
             ['Přesčasy (Auto+Man: ' + r2(totalOT) + 'h)', money(otExtraPay)],
             ['Prémie (' + (state.bonus_pct || 0) + '%)', money(primeP)],
             ['Náhrada za dovolenou', money(vacPay)],
+            // FIX: Řádek je tu fixně vždycky
+            ['Motivační bonus', money(annB)],
             ['Fond vedoucího (měsíc)', money(fund)],
             ['Srážka Stravenky ('+mc+' ks)', '− ' + money(mealDeduct)],
             ['Srážka Obědy ('+lc+' ks)', '− ' + money(lunchDeduct)]
