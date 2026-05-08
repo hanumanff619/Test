@@ -574,10 +574,10 @@ function renderCalendar() {
             const dt = new Date(y, m, day);
             const key = ymd(dt);
             const t = state.shifts[key] || "";
-            let shiftLabel = t; // TADY BYLA TA CHYBA, UŽ JE TO OPRAVENÝ
+            // TADY JE TA OPRAVA - ŽÁDNÝ NÁPIS, JEN PÍSMENO
             html += `<td data-date="${key}" class="${t} ${selectedDate === key ? 'selected' : ''} ${key === todayKey ? 'today' : ''}">
                  <div class="daynum">${day}${isHoliday(dt) ? ' 🎌' : ''}</div>
-                 ${t ? `<span class="badge">${shiftLabel}</span>` : ''}
+                 ${t ? `<span class="badge">${t}</span>` : ''}
                </td>`;
             day++;
         }
