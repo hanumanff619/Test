@@ -122,7 +122,14 @@
         <div style="flex:1"><label>Průměr z pásky (Kč/h)</label><input id="avg_manual" type="number" step="0.01"></div>
     </div>
     <div id="avg_info" class="subtle"></div>
-    <div id="pay"></div>
+    
+    <!-- TADY JE TEN SOUPIS S PŘIDANÝM BONUSEM NATVRDO -->
+    <div id="pay">
+      <!-- Tyhle řádky tam budou vždycky, Java je jen přepíše, když poběží -->
+      <div class="payline"><span>Motivační bonus</span><span id="display_bonus"><b>0,00 Kč</b></span></div>
+      <div class="payline"><span>Fond vedoucího</span><span id="display_fund"><b>0,00 Kč</b></span></div>
+    </div>
+    
     <div id="gross" class="result">💼 Hrubá mzda: 0,00 Kč</div>
     <div id="net" class="result">💵 Čistá mzda: 0,00 Kč</div>
     <div id="meal" class="result">🍽️ Stravenky: 0 ks</div>
