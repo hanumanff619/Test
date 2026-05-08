@@ -494,60 +494,22 @@ function calcPay() {
             if (t === 'R' && isSat(dt)) satB += 500;
             
             if (t === 'FO') {
-// Najdi ve svém app_v181.js celou funkci calcPay a nahraď ji touto:
-function calcPay() {
-    const avg = avgRate();
-    const C = state._calc || { hours: 0, afterH: 0, nightH: 0, weekendH: 0, vac: 0, holWorkedH: 0, autoOT: 0, fDays: 0 };
-    const ymKey = ym(current);
-    const currentMonth = current.getMonth();
-    const effB = nval(state.monthRates[ymKey]) || nval(state.rates['rate_base']) || 148.50;
-
-    const r = {
-        b: effB,
-        o: nval(state.rates['rate_odpo']) || 10,
-        n: nval(state.rates['rate_noc']) || 25,
-        v: nval(state.rates['rate_vikend']) || 35,
-        nep: nval(state.rates['rate_nepretrzity'])
-    };
-
-    const basePay = r.b * C.hours;
-    const odpoPay = r.o * C.afterH;
-    const nightPay = r.n * C.nightH;
-    const weekPay = r.v * C.weekendH;
-    const holPay = avg * C.holWorkedH;
-    const totalOT = C.autoOT + r.nep;
-    const otExtraPay = (avg * 0.25) * totalOT;
-    const primeP = basePay * (nval(state.bonus_pct) / 100);
-    const vH = state.mode === '12' ? 11.25 : (state.mode === '7.75' ? 7.75 : 8);
-    const vacPay = vH * avg * C.vac;
-    const hlukPay = C.fDays * (7.75 * 6);
-
-    // FIX: Načtení bonusu přímo z inputu, aby to v tom soupisu nezmizelo
-    const bonusInputVal = nval(state.annual_bonus);
-    const annB = (currentMonth === 5 || currentMonth === 10) ? bonusInputVal : 0;
-    
-    const fund = nval(state.monthFunds[ymKey]);
-
-    let mc = 0, lc = 0, satB = 0;
-    for (let i = 1; i <= daysIn(current.getFullYear(), currentMonth); i++) {
-        const dt = new Date(current.getFullYear(), currentMonth, i);
-        const t = state.shifts[ymd(dt)];
-        if (!t || t === 'V') continue;
-        const noL = isSat(dt) || isHoliday(dt);
-        if (t === 'N') { mc += 2; } 
-        else if (t === 'D') { if (isW(dt)) mc += 2; else { mc += 1; if(!noL) lc++; else mc++; } } 
-        else if (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') { 
-            if (t === 'R' && isSat(dt)) satB += 500;
-            if (t === 'FO') { mc += 1; } 
-            else if (t === 'F16') { mc += 1; lc += 1; } 
-            else if (state.mode === '7.75') { if (t === 'O' || t === 'F') mc += 1; } 
-            else { if (isW(dt)) mc += 1; else if (!isHoliday(dt)) { if(!noL) lc++; else mc++; } }
+                mc += 1; 
+            } else if (t === 'F16') {
+                mc += 1; lc += 1;
+            } else if (state.mode === '7.75') {
+                if (t === 'O' || t === 'F') mc += 1; 
+            } else {
+                if (isW(dt)) mc += 1; 
+                else if (!isHoliday(dt)) {
+                    if(!noL) lc++; else mc++; 
+                }
+            }
         }
     }
 
-    const mealDeduct = mc * (window.MEAL_DEDUCT || 40);
-    const lunchDeduct = lc * (window.LUNCH_DEDUCT || 40);
-    
+    const mealDeduct = mc * MEAL_DEDUCT;
+    const lunchDeduct = lc * LUNCH_DEDUCT;
     const gross = basePay + odpoPay + nightPay + weekPay + holPay + otExtraPay + primeP + vacPay + annB + fund + satB + hlukPay;
 
     const soc = Math.round(gross * 0.065);
@@ -556,7 +518,7 @@ function calcPay() {
     const net = gross - soc - hlth - tax - (mealDeduct + lunchDeduct);
 
     if ($('pay')) {
-        const payRows = [
+        $('pay').innerHTML = [
             ['Základ', money(basePay)],
             ['Odpolední příplatek', money(odpoPay)],
             ['Noční příplatek', money(nightPay)],
@@ -564,39 +526,28 @@ function calcPay() {
             ['Ztížené prostředí (Hluk)', money(hlukPay)],
             ['Soboty R (+500/ks)', money(satB)],
             ['Svátek (100% průměru)', money(holPay)],
-            ['Přesčasy (' + r2(totalOT) + 'h)', money(otExtraPay)],
+            ['Přesčasy (Auto+Man: ' + r2(totalOT) + 'h)', money(otExtraPay)],
             ['Prémie (' + (state.bonus_pct || 0) + '%)', money(primeP)],
-            ['Náhrada za dovolenou', money(vacPay)]
-        ];
-
-        // Tady je to vynucení zobrazení
-        if (annB > 0) {
-            payRows.push(['Motivační bonus', money(annB)]);
-        }
-        if (fund > 0) {
-            payRows.push(['Fond vedoucího (měsíc)', money(fund)]);
-        }
-
-        payRows.push(
+            ['Náhrada za dovolenou', money(vacPay)],
+            ['Fond vedoucího (měsíc)', money(fund)],
             ['Srážka Stravenky ('+mc+' ks)', '− ' + money(mealDeduct)],
             ['Srážka Obědy ('+lc+' ks)', '− ' + money(lunchDeduct)]
-        );
-
-        $('pay').innerHTML = payRows.map(([k, v]) => `<div class="payline"><span>${k}</span><span><b>${v}</b></span></div>`).join('');
+        ].map(([k, v]) => `<div class="payline"><span>${k}</span><span><b>${v}</b></span></div>`).join('');
     }
 
     $('gross').textContent = '💼 Hrubá mzda: ' + money(gross);
     $('net').textContent = '💵 Čistá mzda (odhad): ' + money(net);
     $('meal').textContent = '🍽️ Stravenky: ' + mc + ' ks — ' + money(mc * 110);
     const cafVal = state.cafeteria_ok ? '1 000,00 Kč' : '0,00 Kč';
-    if ($('cafInfo')) $('cafInfo').innerHTML = `🎁 Cafeterie (mimo čistou): <b>${cafVal}</b>`;
-
+    if ($('cafInfo')) {
+        $('cafInfo').innerHTML = `🎁 Cafeterie (mimo čistou): <b>${cafVal}</b>`;
+    }
     state.yearSummary[current.getFullYear()] = state.yearSummary[current.getFullYear()] || {};
-    state.yearSummary[current.getFullYear()][currentMonth] = { gross, net, hours: C.hours, mealCount: mc, mealValue: mc * 110, ts: Date.now() };
+    state.yearSummary[current.getFullYear()][current.getMonth()] = { gross, net, hours: C.hours, mealCount: mc, mealValue: mc * 110, ts: Date.now() };
     save();
     renderYearSummary();
 }
-                
+
 function renderYearSummary() {
     const box = $('yearSummary');
     if (!box) return;
