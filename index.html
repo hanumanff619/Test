@@ -3,126 +3,141 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Směnářek ® - Záchranná Verze</title>
+  <title>Směnářek - Family Edition</title>
+  <meta name="theme-color" content="#102a4a">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png">
   <style>
-    :root{--bg:#0c1d33;--panel:#122e52;--ink:#eaf2ff;--muted:#a9c3e6;--accent:#6cc0ff;--sel:#1e78d799;--good:#5bd39a;--goodtext:#9ff3cd;--field:#0b213d;--border:#1f3f66}
+    :root{
+      --bg:#0c1d33; --panel:#122e52; --ink:#eaf2ff; --muted:#a9c3e6; --accent:#6cc0ff;
+      --sel:#1e78d799; --good:#5bd39a; --goodtext:#9ff3cd; --field:#0b213d; --border:#1f3f66;
+    }
+    /* Módy barev */
+    body.mode8 { --accent:#b38cff; --sel:#7b3ff299; }
+    body.mode775 { --accent:#d38cff; --sel:#a63ff299; } 
+
     html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto}
     *{box-sizing:border-box}
+    header{position:sticky;top:0;z-index:5;background:linear-gradient(180deg,rgba(12,29,51,.95),rgba(12,29,51,.7));backdrop-filter:blur(6px)}
+    .head{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:.7rem 1rem}
+    .logo{font-size:2rem;line-height:1}
+    h1{margin:.2rem 0 0 0;font-size:1.25rem}
+    .todayBox{width:100%;max-width:1200px;padding:.4rem 1rem 0 1rem}
+    .todayLine{color:var(--goodtext);font-weight:700}
     .wrap{max-width:1200px;margin:0 auto;padding:1rem}
-    .card{background:var(--panel);border-radius:18px;padding:1rem;margin-bottom:1rem}
+    .grid{display:grid;grid-template-columns:1fr;gap:.9rem}
+    @media(min-width:1100px){.grid{grid-template-columns:1.5fr 1fr}}
+    .card{background:var(--panel);border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:1rem;position:relative}
     .calendar{width:100%;border-collapse:collapse}
-    .calendar td{height:80px;border:1px solid rgba(255,255,255,0.1);position:relative;text-align:center}
-    .result{margin-top:.6rem;padding:.7rem;border-radius:12px;background:rgba(91,211,154,0.12);color:#9ff3cd;font-weight:700}
-    .payline{display:flex;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid rgba(255,255,255,0.08)}
-    input{width:100%;padding:.6rem;border-radius:12px;border:1px solid var(--border);background:var(--field);color:var(--ink);margin-bottom:.5rem}
-    .row{display:flex;gap:.5rem}
-    .chip{padding:.4rem .8rem;border-radius:99px;background:var(--panel);border:1px solid var(--border);color:var(--ink);cursor:pointer}
-    .D{background:rgba(108,192,255,0.2)} .N{background:rgba(255,188,104,0.2)} .V{background:rgba(119,214,139,0.2)}
+    .calendar th,.calendar td{border:1px solid rgba(255,255,255,.08);padding:.35rem;vertical-align:top}
+    .calendar th{color:var(--muted);font-weight:600;text-align:center;background:rgba(14,38,70,.45)}
+    .calendar td{height:92px;position:relative;background:rgba(15,39,72,.26);transition:background .15s ease}
+    .calendar td.selected{background:var(--sel)!important;box-shadow:inset 0 0 0 2px #75c7ff99}
+    .calendar td.today:not(.selected){box-shadow:inset 0 0 0 2px var(--accent)}
+    .daynum{position:absolute;top:.35rem;right:.35rem;color:var(--muted);font-size:.85rem}
+    
+    /* Badge - pevná velikost */
+    .badge{display:inline-block;margin-top:1.2rem;width:28px;height:28px;line-height:26px;text-align:center;border-radius:8px;font-size:.85rem;background:rgba(0,0,0,0.3);font-weight:700}
+    
+    /* Barvy směn */
+    .D, .R {background:linear-gradient(180deg,rgba(108,192,255,.15),rgba(108,192,255,.10))}
+    .N {background:linear-gradient(180deg,rgba(255,188,104,.15),rgba(255,188,104,.10))}
+    .V {background:linear-gradient(180deg,rgba(119,214,139,.14),rgba(119,214,139,.10))}
+    .O {background:linear-gradient(180deg,rgba(255,122,200,.15),rgba(255,122,200,.10))}
+    /* Ferrari ranní */
+    .F {background:linear-gradient(180deg,rgba(255,77,77,.20),rgba(255,77,77,.10))}
+    /* Ferrari odpolední (FO) */
+    .FO {background:linear-gradient(180deg,rgba(255,77,77,0.30),rgba(255,77,77,0.15))}
+    /* Brutální 16ka (F16) */
+    .F16 {background:linear-gradient(180deg,rgba(255,0,0,0.40),rgba(255,0,0,0.25)); box-shadow:inset 0 0 10px rgba(255,0,0,0.4)}
+    
+    /* Texty badge */
+    .D .badge, .R .badge { color: #6cc0ff; border: 1px solid #6cc0ff; }
+    .N .badge { color: #ffbc68; border: 1px solid #ffbc68; }
+    .O .badge { color: #ff7ac8; border: 1px solid #ff7ac8; }
+    .V .badge { color: #9ff3cd; border: 1px solid #9ff3cd; }
+    .F .badge, .FO .badge { color: #ff4d4d; border: 1px solid #ff4d4d; }
+    .F16 .badge { color: #ff0000; border: 2px solid #ff0000; text-shadow: 0 0 5px #ff0000}
+
+    .row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
+    .chip{padding:.3rem .7rem;border:1px solid rgba(255,255,255,.12);border-radius:99px;background:transparent;color:var(--ink);cursor:pointer;font-weight:600}
+    label{display:block;margin:.45rem 0 .25rem}
+    input[type="number"]{width:100%;padding:.6rem .7rem;border-radius:12px;border:1px solid var(--border);background:var(--field);color:var(--ink)}
+    .payline{display:flex;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid rgba(255,255,255,.08)}
+    
+    .result {
+      margin-top:.6rem; padding:.7rem .9rem; border-radius:12px; 
+      border:1px solid rgba(255,255,255,.12); 
+      background:rgba(91,211,154,.12) !important; 
+      color:#9ff3cd !important; font-weight:700;
+    }
+    
+    #bg-layer {
+      position: absolute; inset: 0; background-size: cover; 
+      background-position: center; opacity: 0.34; pointer-events: none;
+      border-radius: 18px;
+    }
+    .subtle{color:var(--muted);margin-top:.2rem}
+    hr{border:none;height:1px;background:rgba(255,255,255,.1);margin:1rem 0}
+    .sig{display:flex;justify-content:center;align-items:center;gap:.4rem;opacity:.9;font-size:1.05rem;margin-top:1.5rem}
   </style>
 </head>
 <body>
-<div class="wrap">
-  <header style="text-align:center;padding:1rem">
-    <h1>Směnářek ®</h1>
-    <div id="todayNameday" style="color:var(--goodtext)"></div>
-  </header>
-
-  <section class="card">
-    <div class="row" style="justify-content:space-between;margin-bottom:1rem">
-      <button class="chip" id="prev">&larr;</button>
-      <h2 id="monthLabel" style="margin:0"></h2>
-      <button class="chip" id="next">&rarr;</button>
+<header>
+  <div class="head"><div class="logo">📆</div><h1>Směnářek</h1></div>
+  <div class="todayBox"><div id="todayShift" class="todayLine">Dnes: —</div><div id="todayNameday" class="todayLine">Svátek: —</div></div>
+</header>
+<div class="wrap grid">
+  <section class="card" id="card-calendar">
+    <div id="bg-layer"></div>
+    <div class="row" style="justify-content:space-between">
+      <div class="row"><button class="chip" id="prev">&larr;</button><div id="monthLabel" class="chip"></div><button class="chip" id="next">&rarr;</button></div>
+      <div class="row"><button class="chip" id="setToday">Dnes</button><button class="chip" id="clearDay">Smazat</button></div>
     </div>
-    <table id="cal" class="calendar"></table>
+    <table class="calendar" id="cal"></table>
+    <div class="row" style="margin-top:.6rem">
+      <button class="chip" id="mode12">12 h</button>
+      <button class="chip" id="mode8">8 h</button>
+      <button class="chip" id="mode775">7.75 h</button>
+    </div>
   </section>
-
   <aside class="card">
-    <h3>Nastavení a Výplata</h3>
-    <label>Základ (Kč/h)</label><input id="rate_base" type="number">
+    <h3 style="margin-top:0">Statistiky a Výplata</h3>
+    <div id="stats"></div><div id="substats"></div><hr>
+    <label>Základní hodinovka (Kč/h)</label><input id="rate_base" type="number" step="0.01">
+    <div class="row"><div style="flex:1"><label>Specifický základ měsíc</label><input id="rate_base_month" type="number" step="0.01"></div></div>
     <div class="row">
-      <div style="flex:1"><label>Motivační bonus</label><input id="annual_bonus" type="number"></div>
-      <div style="flex:1"><label>Prémie %</label><input id="bonus_pct" type="number"></div>
+        <div style="flex:1"><label>Odpolední</label><input id="rate_odpo" type="number" step="0.01"></div>
+        <div style="flex:1"><label>Noční</label><input id="rate_noc" type="number" step="0.01"></div>
+    </div>
+    <div class="row">
+        <div style="flex:1"><label>Víkend</label><input id="rate_vikend" type="number" step="0.01"></div>
+        <div style="flex:1"><label>Přesčas Man. (h)</label><input id="rate_nepretrzity" type="number" step="0.01"></div>
+    </div>
+    <div class="row" style="margin:.5rem 0"><input id="caf_check" type="checkbox" style="width:auto"><label for="caf_check" style="margin:0">Cafeterie 1000 Kč</label></div>
+    <div class="row">
+        <div style="flex:1"><label>Prémie %</label><input id="bonus_pct" type="number" step="0.1"></div>
+        <div style="flex:1"><label>Motivační</label><input id="annual_bonus" type="number" step="1"></div>
     </div>
     <label>Fond vedoucího</label><input id="fund_bonus_month" type="number">
-    
     <hr>
+    <div class="row">
+        <div style="flex:1"><label>M-1 Čistá</label><input id="avg_net1" type="number" step="0.01"></div>
+        <div style="flex:1"><label>M-1 Hodiny</label><input id="avg_h1" type="number" step="0.01"></div>
+    </div>
+    <div class="row">
+        <div style="flex:1"><label>Průměr z pásky (Kč/h)</label><input id="avg_manual" type="number" step="0.01"></div>
+    </div>
+    <div id="avg_info" class="subtle"></div>
     <div id="pay"></div>
-    <div id="gross" class="result">Hrubá: 0,00 Kč</div>
-    <div id="net" class="result">Čistá (odhad): 0,00 Kč</div>
-    <div class="sig" style="text-align:center;margin-top:1rem;opacity:0.5">Hanuman & Gemini ®</div>
+    <div id="gross" class="result">💼 Hrubá mzda: 0,00 Kč</div>
+    <div id="net" class="result">💵 Čistá mzda: 0,00 Kč</div>
+    <div id="meal" class="result">🍽️ Stravenky: 0 ks</div>
+    <div id="cafInfo" class="result">🎁 Cafeterie: 0,00 Kč</div>
+    <div id="yearSummary"></div>
+    <div class="sig"><span style="color:#6cc0ff;font-weight:700">Hanuman & Gemini ® </span></div>
   </aside>
 </div>
-
-<script>
-// Tady je záchranná logika
-let current = new Date();
-let state = JSON.parse(localStorage.getItem('smenarek_v1')) || { shifts: {}, rates: {rate_base:148.5}, annual_bonus:0, bonus_pct:10, monthFunds:{} };
-
-function save() { localStorage.setItem('smenarek_v1', JSON.stringify(state)); }
-function $(id) { return document.getElementById(id); }
-function money(v) { return (v || 0).toLocaleString('cs-CZ') + ' Kč'; }
-
-function render() {
-  const y = current.getFullYear(), m = current.getMonth();
-  $('monthLabel').textContent = new Intl.DateTimeFormat('cs-CZ', {month:'long', year:'numeric'}).format(current);
-  
-  let html = '<tr><th>Po</th><th>Út</th><th>St</th><th>Čt</th><th>Pá</th><th>So</th><th>Ne</th></tr><tr>';
-  let firstDay = new Date(y, m, 1).getDay() || 7;
-  let days = new Date(y, m + 1, 0).getDate();
-
-  for(let i=1; i<firstDay; i++) html += '<td></td>';
-  for(let i=1; i<=days; i++) {
-    let dKey = `${y}-${m+1}-${i}`;
-    let s = state.shifts[dKey] || '';
-    html += `<td class="${s}" onclick="toggleShift('${dKey}')">${i}<br><b>${s}</b></td>`;
-    if((i + firstDay - 1) % 7 === 0) html += '</tr><tr>';
-  }
-  $('cal').innerHTML = html + '</tr>';
-  calc();
-}
-
-function toggleShift(key) {
-  const codes = ['', 'D', 'N', 'R', 'V'];
-  let cur = state.shifts[key] || '';
-  state.shifts[key] = codes[(codes.indexOf(cur) + 1) % codes.length];
-  save(); render();
-}
-
-function calc() {
-  let h = 0;
-  for(let k in state.shifts) {
-    if(k.startsWith(`${current.getFullYear()}-${current.getMonth()+1}-`)) {
-      if(['D','N','R'].includes(state.shifts[k])) h += 11.25;
-    }
-  }
-  
-  let base = nval($('rate_base').value) * h;
-  let bonus = nval($('annual_bonus').value);
-  let fund = nval($('fund_bonus_month').value);
-  let gross = base + (base * (nval($('bonus_pct').value)/100)) + bonus + fund;
-  
-  $('gross').textContent = '💼 Hrubá mzda: ' + money(gross);
-  $('net').textContent = '💵 Čistá (odhad): ' + money(gross * 0.78);
-  
-  let payRows = [['Základ', money(base)]];
-  if(bonus > 0) payRows.push(['Motivační bonus', money(bonus)]);
-  if(fund > 0) payRows.push(['Fond vedoucího', money(fund)]);
-  
-  $('pay').innerHTML = payRows.map(r => `<div class="payline"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
-}
-
-function nval(v) { return parseFloat(v) || 0; }
-
-$('prev').onclick = () => { current.setMonth(current.getMonth()-1); render(); };
-$('next').onclick = () => { current.setMonth(current.getMonth()+1); render(); };
-$('rate_base').oninput = (e) => { state.rates.rate_base = e.target.value; save(); calc(); };
-$('annual_bonus').oninput = (e) => { state.annual_bonus = e.target.value; save(); calc(); };
-
-// Prvotní načtení políček
-$('rate_base').value = state.rates.rate_base;
-$('annual_bonus').value = state.annual_bonus;
-
-render();
-</script>
+<script src="app_v181.js" defer></script>
 </body>
 </html>
