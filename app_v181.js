@@ -21,6 +21,8 @@ const MAP775 = {
     R: 'R 5:45–14:01', 
     O: 'O 13:45–22:01', 
     F: 'F 05:45–14:01 (Hluk)',
+    FO: 'FO 13:45–22:01 (Hluk+Stravenka)',
+    F16: 'F16 05:45–22:01 (Hluk+Oběd+Strav)',
     V: 'Dovolená' 
 };
 
@@ -179,13 +181,13 @@ function updateHeader() {
 }
 
 function nextCode(cur) {
-    const codes = ["", "R", "O", "D", "N", "F", "V"];
+    const codes = ["", "R", "O", "D", "N", "F", "FO", "F16", "V"];
     let idx = codes.indexOf(cur);
     return codes[(idx + 1) % codes.length];
 }
 
 function setShift(dateStr, t, rerender = true) {
-    const valid = ['R', 'O', 'D', 'N', 'F', 'V', ''];
+    const valid = ['R', 'O', 'D', 'N', 'F', 'FO', 'F16', 'V', ''];
     if (!valid.includes(t)) return;
     if (t === '') {
         delete state.shifts[dateStr];
@@ -364,16 +366,18 @@ function updateStats() {
         if (!t) continue;
         if (t === 'V') { vac++; continue; }
 
-        let curH = (t === 'R' || t === 'O' || t === 'F') ? 7.75 : DAILY_WORKED;
+        let curH = (t === 'R' || t === 'O' || t === 'F' || t === 'FO') ? 7.75 : (t === 'F16' ? 16.25 : DAILY_WORKED);
         if (state.mode === '8' && t === 'R') curH = 8.0;
 
         if (isH || isWk) autoOT += curH;
 
-        if (t === 'R' || t === 'O' || t === 'F') {
-            if (t === 'F') {
-                fDays++; hours += 7.75; afterH += 7.75;
-                if (isH) holWorkedH += 7.75;
-                if (isWk) weekendH += 7.75;
+        if (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') {
+            if (t === 'F' || t === 'FO' || t === 'F16') {
+                fDays += (t === 'F16' ? 2 : 1); 
+                hours += (t === 'F16' ? 16.25 : 7.75); 
+                afterH += (t === 'F' ? 0 : 7.75);
+                if (isH) holWorkedH += (t === 'F16' ? 16.25 : 7.75);
+                if (isWk) weekendH += (t === 'F16' ? 16.25 : 7.75);
             } else {
                 let hVal = (state.mode === '8' ? 8.0 : 7.75);
                 if (t === 'O') oDays++; else rDays++;
@@ -486,9 +490,14 @@ function calcPay() {
         } else if (t === 'D') { 
             if (isW(dt)) mc += 2; 
             else { mc += 1; if(!noL) lc++; else mc++; } 
-        } else if (t === 'R' || t === 'O' || t === 'F') { 
+        } else if (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') { 
             if (t === 'R' && isSat(dt)) satB += 500;
-            if (state.mode === '7.75') {
+            
+            if (t === 'FO') {
+                mc += 1; 
+            } else if (t === 'F16') {
+                mc += 1; lc += 1;
+            } else if (state.mode === '7.75') {
                 if (t === 'O' || t === 'F') mc += 1; 
             } else {
                 if (isW(dt)) mc += 1; 
@@ -577,7 +586,6 @@ function renderCalendar() {
             const dt = new Date(y, m, day);
             const key = ymd(dt);
             const t = state.shifts[key] || "";
-            // TADY JE TA OPRAVA - ŽÁDNÝ NÁPIS, JEN PÍSMENO
             html += `<td data-date="${key}" class="${t} ${selectedDate === key ? 'selected' : ''} ${key === todayKey ? 'today' : ''}">
                  <div class="daynum">${day}${isHoliday(dt) ? ' 🎌' : ''}</div>
                  ${t ? `<span class="badge">${t}</span>` : ''}
