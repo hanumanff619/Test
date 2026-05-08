@@ -20,7 +20,7 @@ const MAP8 = {
 const MAP775 = { 
     R: 'R 5:45–14:01', 
     O: 'O 13:45–22:01', 
-    F: 'F 05:45–14:01 (Ferrari)',
+    F: 'F 05:45–14:01 (Hluk)',
     V: 'Dovolená' 
 };
 
@@ -167,7 +167,7 @@ function updateHeader() {
             if (state.mode === '7.75') label = 'R 05:45–14:01';
             else label = isW(today) ? 'R 05:00–13:15' : 'R 05:25–13:56';
         } else if (t === 'F') {
-            label = 'F 05:45–14:01 (Ferrari)';
+            label = 'F 05:45–14:01 (Hluk)';
         } else {
             label = (state.mode === '7.75' ? MAP775[t] : (state.mode === '8' ? MAP8[t] : MAP12[t])) || t;
         }
@@ -574,8 +574,7 @@ function renderCalendar() {
             const dt = new Date(y, m, day);
             const key = ymd(dt);
             const t = state.shifts[key] || "";
-            let shiftLabel = t;
-            if (t === 'F') shiftLabel = 'Ferrari';
+            let shiftLabel = t; // TADY BYLA TA CHYBA, UŽ JE TO OPRAVENÝ
             html += `<td data-date="${key}" class="${t} ${selectedDate === key ? 'selected' : ''} ${key === todayKey ? 'today' : ''}">
                  <div class="daynum">${day}${isHoliday(dt) ? ' 🎌' : ''}</div>
                  ${t ? `<span class="badge">${shiftLabel}</span>` : ''}
