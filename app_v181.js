@@ -343,7 +343,11 @@ function updateStats() {
     let shiftH = 8.0;
     if (state.mode === '7.75') shiftH = 7.75;
 
-    let dDay = 0, nDay = 0, vac = 0, hours = 0, nightH = 0, afterH = 0, weekendH = 0, holWorkedH = 0, rDays = 0, oDays = 0, fDays = 0, autoOT = 0;
+    let dDay = 0, nDay = 0, vac = 0, hours = 0, nightH = 0, afterH = 0, weekendH = 0, rDays = 0, oDays = 0, fDays = 0, autoOT = 0;
+    
+    // INTELIGENTNÍ FIX SVÁTKŮ: Rozdělení na odpracované a neodpracované doma
+    let holWorkedH = 0;
+    let holPaidHomeH = 0;
 
     for (let i = 1; i <= last.getDate(); i++) {
         const dt = new Date(y, m, i);
@@ -352,8 +356,11 @@ function updateStats() {
         const isH = isHoliday(dt);
         const isWk = isW(dt);
 
-        if (isH && !isWk && !t) {
-            if (state.mode === '8' || state.mode === '7.75') holWorkedH += shiftH;
+        // STAV 1: Svátek padl na všední den a TY JSI BYL DOMA (políčko prázdné nebo Dovolená)
+        if (isH && !isWk && (!t || t === 'V')) {
+            let hHomeVal = (state.mode === '12') ? 11.25 : shiftH;
+            holPaidHomeH += hHomeVal;
+            if (t === 'V') vac++; // Pokud sis na svátek hodil fiktivně V, započítá se i jako den dovolené
             continue;
         }
 
@@ -374,7 +381,7 @@ function updateStats() {
                 if (t === 'FO' || t === 'F16') {
                     afterH += Math.min(curH, 7.75);
                 }
-                if (isH) holWorkedH += curH;
+                if (isH) holWorkedH += curH; // STAV 2: Odpracovaný svátek ve fabrice
                 if (isWk) weekendH += curH;
             } else {
                 if (t === 'O') oDays++; else rDays++;
@@ -382,26 +389,26 @@ function updateStats() {
                 if (t === 'O') afterH += curH;
                 nightH += rShiftNightH(dt);
                 if (isWk) weekendH += curH;
-                if (isH) holWorkedH += curH;
+                if (isH) holWorkedH += curH; // STAV 2: Odpracovaný svátek ve fabrice
             }
         } else if (t === 'D') {
             dDay++; hours += curH; 
             afterH += Math.max(0, curH - 7.5); 
             if (isWk) weekendH += curH; 
-            if (isH) holWorkedH += curH;
+            if (isH) holWorkedH += curH; // STAV 2: Odpracovaný svátek ve fabrice
         } else if (t === 'N') {
             nDay++; hours += curH; 
             afterH += Math.min(4, Math.max(0, curH - 7.25)); 
             nightH += Math.min(7.25, curH);
             if (isWk) weekendH += curH; 
-            if (isH) holWorkedH += curH;
+            if (isH) holWorkedH += curH; // STAV 2: Odpracovaný svátek ve fabrice
             const nextDay = new Date(y, m, i + 1);
             if (isHoliday(nextDay)) holWorkedH += Math.min(6, curH);
         }
     }
 
     if ($('stats')) {
-        $('stats').innerHTML = `R:${rDays} O:${oDays} F:${fDays} D:${dDay} N:${nDay} V:${vac}<br>Hodiny: <b>${r2(hours)}</b> | Svátek: <b>${r2(holWorkedH)}h</b>`;
+        $('stats').innerHTML = `R:${rDays} O:${oDays} F:${fDays} D:${dDay} N:${nDay} V:${vac}<br>Hodiny: <b>${r2(hours)}</b> | Svátek v práci: <b>${r2(holWorkedH)}h</b>`;
     }
 
     if ($('substats')) {
@@ -412,7 +419,7 @@ function updateStats() {
             `<div class="payline"><span>Víkendové hodiny</span><span><b>${r2(weekendH)}</b> h</span></div>`
         ].join('');
     }
-    state._calc = { hours, afterH, nightH, weekendH, vac, holWorkedH, DAILY_WORKED, H8: shiftH, VAC12, autoOT, fDays };
+    state._calc = { hours, afterH, nightH, weekendH, vac, holWorkedH, holPaidHomeH, DAILY_WORKED, H8: shiftH, VAC12, autoOT, fDays };
     save();
 }
 
@@ -445,7 +452,7 @@ function avgRate() {
 
 function calcPay() {
     const avg = avgRate();
-    const C = state._calc || { hours: 0, afterH: 0, nightH: 0, weekendH: 0, vac: 0, holWorkedH: 0, autoOT: 0, fDays: 0 };
+    const C = state._calc || { hours: 0, afterH: 0, nightH: 0, weekendH: 0, vac: 0, holWorkedH: 0, holPaidHomeH: 0, autoOT: 0, fDays: 0 };
     const ymKey = ym(current);
     const effB = nval(state.monthRates[ymKey]) || nval(state.rates['rate_base']) || 148.50;
 
@@ -461,7 +468,12 @@ function calcPay() {
     const odpoPay = r.o * C.afterH;
     const nightPay = r.n * C.nightH;
     const weekPay = r.v * C.weekendH;
-    const holPay = (avg * 1.25) * C.holWorkedH;
+    
+    // PARÁDNÍ MATEMATICKÉ ROZDĚLENÍ SVÁTKŮ NA PÁSKU
+    const holWorkedPay = (avg * 1.25) * (C.holWorkedH || 0);  // Odpracovaný = 125 % průměru
+    const holHomePay = avg * (C.holPaidHomeH || 0);            // Neodpracovaný doma = 100 % průměru
+    const holPay = holWorkedPay + holHomePay;
+
     const totalOT = C.autoOT + r.nep;
     const otExtraPay = (avg * 0.25) * totalOT;
     const primeP = basePay * (nval(state.bonus_pct) / 100);
@@ -527,7 +539,9 @@ function calcPay() {
             ['Víkendový příplatek', money(weekPay)],
             ['Ztížené prostředí (Hluk)', money(hlukPay)],
             ['Soboty R (+500/ks)', money(satB)],
-            ['Svátek (125% průměru)', money(holPay)],
+            // Vypisujeme oba stavy odděleně přímo na displej
+            ['Odpracovaný svátek (125% průměru)', money(holWorkedPay)],
+            ['Náhrada za svátek doma (100% průměru)', money(holHomePay)],
             ['Přesčasy (Auto+Man: ' + r2(totalOT) + 'h)', money(otExtraPay)],
             ['Prémie (' + (state.bonus_pct || 0) + '%)', money(primeP)],
             ['Náhrada za dovolenou', money(vacPay)],
@@ -606,9 +620,6 @@ function renderCalendar() {
         td.onclick = (e) => {
             const dateKey = td.dataset.date;
             
-            // INTELIGENTNÍ DOPLNĚK PRO ANDROID:
-            // Pokud klikneš na den, který už je označený (aktivní) a má směnu, vyvolá se prompt pro hodiny.
-            // Pokud klikneš na jiný den, klasicky se označí a posune se kód směny.
             if (selectedDate === dateKey && state.shifts[dateKey] && state.shifts[dateKey] !== "") {
                 let currentH = state.customHours[dateKey];
                 if (currentH === undefined) {
@@ -631,7 +642,6 @@ function renderCalendar() {
                 }
             }
             
-            // Klasický výběr dne a posun kódu
             selectedDate = dateKey;
             setShift(dateKey, nextCode(state.shifts[dateKey] || ''));
         };
