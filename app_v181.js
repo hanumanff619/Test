@@ -37,6 +37,8 @@ if (state.cafeteria_ok == null) state.cafeteria_ok = false;
 
 if (!state.monthFunds) state.monthFunds = {};
 if (!state.monthRates) state.monthRates = {};
+// NOVINKA: Skladování upravených hodin pro konkrétní dny
+if (!state.customHours) state.customHours = {};
 
 if (!state.avg) {
     state.avg = {
@@ -191,6 +193,7 @@ function setShift(dateStr, t, rerender = true) {
     if (!valid.includes(t)) return;
     if (t === '') {
         delete state.shifts[dateStr];
+        delete state.customHours[dateStr]; // Vymaže i ruční hodiny, když mažeš směnu
     } else {
         state.shifts[dateStr] = t;
     }
@@ -324,7 +327,6 @@ function bindInputsOnce() {
             renderCalendar();
         };
     }
-    // AUDIT SMAZÁN Z LOGIKY
 }
 
 function refreshMonthScopedInputs() {
@@ -359,37 +361,46 @@ function updateStats() {
         if (!t) continue;
         if (t === 'V') { vac++; continue; }
 
-        let curH = (t === 'R' || t === 'O' || t === 'F' || t === 'FO') ? 7.75 : (t === 'F16' ? 16.25 : DAILY_WORKED);
-        if (state.mode === '8' && t === 'R') curH = 8.0;
+        // Zjištění základních tabulkových hodin
+        let baseShiftH = (t === 'R' || t === 'O' || t === 'F' || t === 'FO') ? 7.75 : (t === 'F16' ? 16.25 : DAILY_WORKED);
+        if (state.mode === '8' && t === 'R') baseShiftH = 8.0;
+
+        // REGULACE: Pokud existují ručně upravené hodiny dne, použijeme je pro celkové hodiny
+        let curH = (state.customHours && state.customHours[key] !== undefined) ? nval(state.customHours[key]) : baseShiftH;
 
         if (isH || isWk) autoOT += curH;
 
         if (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') {
             if (t === 'F' || t === 'FO' || t === 'F16') {
                 fDays += (t === 'F16' ? 2 : 1); 
-                hours += (t === 'F16' ? 16.25 : 7.75); 
-                afterH += (t === 'F' ? 0 : 7.75);
-                if (isH) holWorkedH += (t === 'F16' ? 16.25 : 7.75);
-                if (isWk) weekendH += (t === 'F16' ? 16.25 : 7.75);
+                hours += curH; 
+                // Odpolední složka příplatku u Ferrari směn (pokud je ruční čas kratší než standard, zkrátíme i odpolední složku)
+                if (t === 'FO' || t === 'F16') {
+                    afterH += Math.min(curH, 7.75);
+                }
+                if (isH) holWorkedH += curH;
+                if (isWk) weekendH += curH;
             } else {
-                let hVal = (state.mode === '8' ? 8.0 : 7.75);
                 if (t === 'O') oDays++; else rDays++;
-                hours += hVal;
-                if (t === 'O') afterH += 7.75;
+                hours += curH;
+                if (t === 'O') afterH += curH;
                 nightH += rShiftNightH(dt);
-                if (isWk) weekendH += hVal;
-                if (isH) holWorkedH += hVal;
+                if (isWk) weekendH += curH;
+                if (isH) holWorkedH += curH;
             }
         } else if (t === 'D') {
-            dDay++; hours += DAILY_WORKED; afterH += 3.75;
-            if (isWk) weekendH += DAILY_WORKED; 
-            if (isH) holWorkedH += DAILY_WORKED;
+            dDay++; hours += curH; 
+            afterH += Math.max(0, curH - 7.5); // Dynamické dopočítání odpoledních z dvanáctky při ruční změně
+            if (isWk) weekendH += curH; 
+            if (isH) holWorkedH += curH;
         } else if (t === 'N') {
-            nDay++; hours += DAILY_WORKED; afterH += 4; nightH += 7.25;
-            if (isWk) weekendH += DAILY_WORKED; 
-            if (isH) holWorkedH += DAILY_WORKED;
+            nDay++; hours += curH; 
+            afterH += Math.min(4, Math.max(0, curH - 7.25)); // Dynamická noční odpolední složka
+            nightH += Math.min(7.25, curH);
+            if (isWk) weekendH += curH; 
+            if (isH) holWorkedH += curH;
             const nextDay = new Date(y, m, i + 1);
-            if (isHoliday(nextDay)) holWorkedH += 6;
+            if (isHoliday(nextDay)) holWorkedH += Math.min(6, curH);
         }
     }
 
@@ -436,10 +447,6 @@ function avgRate() {
     return 0; 
 }
 
-function updateAvgInfo() {
-    const v = avgRate();
-}
-
 function calcPay() {
     const avg = avgRate();
     const C = state._calc || { hours: 0, afterH: 0, nightH: 0, weekendH: 0, vac: 0, holWorkedH: 0, autoOT: 0, fDays: 0 };
@@ -458,17 +465,16 @@ function calcPay() {
     const odpoPay = r.o * C.afterH;
     const nightPay = r.n * C.nightH;
     const weekPay = r.v * C.weekendH;
-    const holPay = avg * C.holWorkedH;
+    // FIX 2: Svátek se počítá jako 125 % z průměru
+    const holPay = (avg * 1.25) * C.holWorkedH;
     const totalOT = C.autoOT + r.nep;
     const otExtraPay = (avg * 0.25) * totalOT;
     const primeP = basePay * (nval(state.bonus_pct) / 100);
     const vH = state.mode === '12' ? 11.25 : (state.mode === '7.75' ? 7.75 : 8);
     const vacPay = vH * avg * C.vac;
     
-    // PŘÍPLATEK FERRARI (Ztížené prostředí - Hluk)
     const hlukPay = C.fDays * (7.75 * 6);
 
-    // FIX: Motivační bonus je 8000 v červnu (5) a listopadu (10), jinak nula (nebo co je v políčku)
     const currentMonth = current.getMonth();
     let annB = 0;
     if (currentMonth === 5 || currentMonth === 10) {
@@ -482,7 +488,8 @@ function calcPay() {
     let mc = 0, lc = 0, satB = 0;
     for (let i = 1; i <= daysIn(current.getFullYear(), current.getMonth()); i++) {
         const dt = new Date(current.getFullYear(), current.getMonth(), i);
-        const t = state.shifts[ymd(dt)];
+        const key = ymd(dt);
+        const t = state.shifts[key];
         if (!t || t === 'V') continue;
         const noL = isSat(dt) || isHoliday(dt);
 
@@ -494,17 +501,17 @@ function calcPay() {
         } else if (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') { 
             if (t === 'R' && isSat(dt)) satB += 500;
             
-            if (t === 'FO') {
-                mc += 1; 
-            } else if (t === 'F16') {
+            if (t === 'F16') {
                 mc += 1; lc += 1;
+            } else if (isW(dt) || isHoliday(dt)) {
+                // FIX 1: Jakákoliv osmička/Ferrari (R, O, F, FO) dostane o víkendu/svátku stravenku automaticky!
+                mc += 1;
+            } else if (t === 'FO' || t === 'F') {
+                mc += 1; 
             } else if (state.mode === '7.75') {
-                if (t === 'O' || t === 'F') mc += 1; 
+                if (t === 'O') mc += 1; 
             } else {
-                if (isW(dt)) mc += 1; 
-                else if (!isHoliday(dt)) {
-                    if(!noL) lc++; else mc++; 
-                }
+                if(!noL) lc++; else mc++; 
             }
         }
     }
@@ -526,11 +533,11 @@ function calcPay() {
             ['Víkendový příplatek', money(weekPay)],
             ['Ztížené prostředí (Hluk)', money(hlukPay)],
             ['Soboty R (+500/ks)', money(satB)],
-            ['Svátek (100% průměru)', money(holPay)],
+            // FIX 2: Změna textového popisku na 125 %
+            ['Svátek (125% průměru)', money(holPay)],
             ['Přesčasy (Auto+Man: ' + r2(totalOT) + 'h)', money(otExtraPay)],
             ['Prémie (' + (state.bonus_pct || 0) + '%)', money(primeP)],
             ['Náhrada za dovolenou', money(vacPay)],
-            // FIX: Řádek je tu fixně vždycky
             ['Motivační bonus', money(annB)],
             ['Fond vedoucího (měsíc)', money(fund)],
             ['Srážka Stravenky ('+mc+' ks)', '− ' + money(mealDeduct)],
@@ -589,8 +596,11 @@ function renderCalendar() {
             const dt = new Date(y, m, day);
             const key = ymd(dt);
             const t = state.shifts[key] || "";
+            // REGULACE: Vizuálně zvýrazníme políčko hvězdičkou, pokud má den ručně upravené hodiny
+            const hasCustom = (state.customHours && state.customHours[key] !== undefined) ? ' ⏱️' : '';
+            
             html += `<td data-date="${key}" class="${t} ${selectedDate === key ? 'selected' : ''} ${key === todayKey ? 'today' : ''}">
-                 <div class="daynum">${day}${isHoliday(dt) ? ' 🎌' : ''}</div>
+                 <div class="daynum">${day}${isHoliday(dt) ? ' 🎌' : ''}${hasCustom}</div>
                  ${t ? `<span class="badge">${t}</span>` : ''}
                </td>`;
             day++;
@@ -599,10 +609,39 @@ function renderCalendar() {
         if (day > total) break;
     }
     $('cal').innerHTML = html + "</tbody>";
+    
     $('cal').querySelectorAll('td[data-date]').forEach(td => {
-        td.onclick = () => {
-            selectedDate = td.dataset.date;
-            setShift(td.dataset.date, nextCode(state.shifts[td.dataset.date] || ''));
+        td.onclick = (e) => {
+            const dateKey = td.dataset.date;
+            selectedDate = dateKey;
+            
+            // Pokud klikneš na den, kde už směna JE, zeptá se tě apka, jestli chceš upravit hodiny. 
+            // Pokud klikneš znovu, změní se klasicky kód směny (zachováno cyklování).
+            if (state.shifts[dateKey] && state.shifts[dateKey] !== "") {
+                // Přidáno okno pro regulaci hodin přímo v kalendáři
+                let currentH = state.customHours[dateKey];
+                if (currentH === undefined) {
+                    let code = state.shifts[dateKey];
+                    currentH = (code === 'R' || code === 'O' || code === 'F' || code === 'FO') ? 7.75 : (code === 'F16' ? 16.25 : 11.25);
+                    if (state.mode === '8' && code === 'R') currentH = 8.0;
+                }
+                
+                // Vyvolá systémové okno na zadání času (android/iOS/PC kompatibilní)
+                let val = prompt(`Upravit odpracované hodiny pro den ${dateKey} (aktuálně: ${currentH} h):`, currentH);
+                if (val !== null) {
+                    let parsed = parseFloat(val);
+                    if (!isNaN(parsed) && parsed > 0) {
+                        state.customHours[dateKey] = parsed;
+                    } else {
+                        delete state.customHours[dateKey]; // Pokud zadá blbost nebo nulu, resetuje se na tabulkový čas
+                    }
+                    save();
+                    renderCalendar();
+                    return;
+                }
+            }
+            
+            setShift(dateKey, nextCode(state.shifts[dateKey] || ''));
         };
     });
     updateStats();
