@@ -500,27 +500,33 @@ function calcPay() {
         const key = ymd(dt);
         const t = state.shifts[key];
         
-        // JISTOTA: Pokud jsi doma nebo máš dovolenou, den rovnou přeskoč
         if (!t || t === '' || t === 'V') continue;
-
-        // --- VNITŘNÍ SMYČKA KOMPLETNĚ VYČIŠTĚNÁ BEZ PROPADÁVÁNÍ VĚTVÍ ---
+        
+        // --- POČÍTÁNÍ STRAVENEK A OBĚDŮ PODLE UPRAVENÉ REALITY ---
         if (t === 'N' || t === 'D') {
-            // Každá dvanáctka v měsíci dává přesně 1 stravenku
-            mc += 1; 
-            
-            // Denní 12ka v týdnu dává navíc 1 oběd
+            mc += 1; // Každá 12ka dává 1 stravenku
             if (t === 'D' && !isW(dt) && !isHoliday(dt)) {
-                lc += 1;
+                lc += 1; // Denní 12ka v týdnu má k tomu oběd
             }
         } else if (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') {
             if (t === 'R' && isSat(dt)) satB += 500;
             
             if (t === 'F16') {
-                mc += 1; 
-                lc += 1;
-            } else {
-                // Svátek 8h, Soboty 8h, Neděle F, Odpolední F = dostanou přesně 1 stravenku
+                mc += 1; lc += 1;
+            } else if (isW(dt) || isHoliday(dt)) {
+                // O víkendech a svátcích (Sobota, Neděle, Svátek) má KAŽDÁ osmička (i Ranní F) automaticky STRAVENKU
                 mc += 1;
+            } else {
+                // --- VŠEDNÍ DEN V TÝDNU ---
+                if (t === 'FO') {
+                    mc += 1; // FO (Odpolední Ferrari) v týdnu = STRAVENKA
+                } else if (t === 'F') {
+                    lc += 1; // F (Ranní Ferrari) v týdnu = OBĚD (Ne stravenka!)
+                } else if (t === 'R') {
+                    lc += 1; // Klasická ranní v týdnu = OBĚD (Ne stravenka!)
+                } else if (t === 'O') {
+                    if (state.mode === '7.75') mc += 1; else lc += 1;
+                }
             }
         }
     }
