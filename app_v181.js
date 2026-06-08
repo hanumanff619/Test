@@ -500,35 +500,27 @@ function calcPay() {
         const key = ymd(dt);
         const t = state.shifts[key];
         
-        // STRIKTNÍ POJISTKA: Pokud jsi doma (políčko prázdné nebo Dovolená), den se přeskočí!
+        // JISTOTA: Pokud jsi doma nebo máš dovolenou, den rovnou přeskoč
         if (!t || t === '' || t === 'V') continue;
-        
-        const noL = isSat(dt) || isHoliday(dt);
 
-        if (t === 'N') {
-            mc += 2;
-        } else if (t === 'D') { 
-            if (isW(dt) || isHoliday(dt)) {
-                mc += 2; 
-            } else { 
-                // Úterý, Pondělí, Úterý v týdnu = 1 stravenka + 1 oběd
-                mc += 1;
+        // --- VNITŘNÍ SMYČKA KOMPLETNĚ VYČIŠTĚNÁ BEZ PROPADÁVÁNÍ VĚTVÍ ---
+        if (t === 'N' || t === 'D') {
+            // Každá dvanáctka v měsíci dává přesně 1 stravenku
+            mc += 1; 
+            
+            // Denní 12ka v týdnu dává navíc 1 oběd
+            if (t === 'D' && !isW(dt) && !isHoliday(dt)) {
                 lc += 1;
-            } 
-        } else if (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') { 
+            }
+        } else if (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') {
             if (t === 'R' && isSat(dt)) satB += 500;
             
             if (t === 'F16') {
-                mc += 1; lc += 1;
-            } else if (isW(dt) || isHoliday(dt)) {
-                // Svátek 8h, Soboty 8h, Neděle F = čistých 1 ks stravenky!
-                mc += 1;
-            } else if (t === 'FO' || t === 'F') {
                 mc += 1; 
-            } else if (state.mode === '7.75') {
-                if (t === 'O') mc += 1; 
+                lc += 1;
             } else {
-                if(!noL) lc++; else mc++; 
+                // Svátek 8h, Soboty 8h, Neděle F, Odpolední F = dostanou přesně 1 stravenku
+                mc += 1;
             }
         }
     }
