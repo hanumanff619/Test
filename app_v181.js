@@ -187,6 +187,7 @@ function nextCode(cur) {
     return codes[(idx + 1) % codes.length];
 }
 
+// Bezpečné uložení směny
 function setShift(dateStr, t, rerender = true) {
     const valid = ['R', 'O', 'D', 'N', 'F', 'FO', 'F16', 'V', ''];
     if (!valid.includes(t)) return;
@@ -424,7 +425,7 @@ function updateStats() {
 function avgRate() {
     const man = nval(state.avg.avg_manual);
     if (man > 0) {
-        if ($('avg_info')) $('avg_info').innerHTML = `Průměr z pásky (ručně): <b>${money(man)}</b>`;
+        if ($('avg_info')) $('avg_info').innerHTML = `Průměr z pásky (ručně): ` + man + ` Kč/h`;
         return man;
     }
     const y = current.getFullYear();
@@ -441,7 +442,7 @@ function avgRate() {
     }
     if (sumNet > 0 && sumHours > 0) {
         const calculatedAvg = sumNet / sumHours;
-        if ($('avg_info')) $('avg_info').innerHTML = `Auto průměr z historie: <b>${calculatedAvg.toFixed(2)} Kč/h</b>`;
+        if ($('avg_info')) $('avg_info').innerHTML = `Auto průměr: ` + calculatedAvg.toFixed(2) + ` Kč/h`;
         return calculatedAvg;
     }
     if ($('avg_info')) $('avg_info').innerHTML = `Zadejte průměr z pásky!`;
@@ -449,7 +450,10 @@ function avgRate() {
 }
 
 function calcPay() {
-    const avg = avgRate(); 
+    // Absolutně bezpečné spuštění bez pádů kvůli prázdným polím
+    let avg = 0;
+    try { avg = avgRate(); } catch(e) { avg = nval(state.avg.avg_manual); }
+
     const C = state._calc || { hours: 0, afterH: 0, nightH: 0, weekendH: 0, vac: 0, holWorkedH: 0, holPaidHomeH: 0, continuousH: 0, autoOT: 0, fDays: 0 };
     const ymKey = ym(current);
     const effB = nval(state.monthRates[ymKey]) || nval(state.rates['rate_base']) || 148.50;
@@ -507,13 +511,14 @@ function calcPay() {
 
         let dayStravenky = 0;
 
+        // --- PŘESNÉ POČÍTÁNÍ MADETA STRAVENEK A OBĚDŮ ---
         if (t === 'N') {
-            dayStravenky = 2; 
+            dayStravenky = 2; // Noční směna = VŽDY 2 stravenky
         } else if (t === 'D') { 
             if (isW(dt) || isH) {
-                dayStravenky = 2; 
+                dayStravenky = 2; // Denní 12ka o víkendu nebo svátku = 2 stravenky
             } else { 
-                dayStravenky = 1; 
+                dayStravenky = 1; // Denní 12ka v týdnu = 1 stravenka + 1 oběd
                 lc += 1;
             } 
         } else if (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') {
@@ -522,17 +527,18 @@ function calcPay() {
             if (t === 'F16') {
                 dayStravenky = 1; lc += 1;
             } else if (isW(dt) || isH) {
-                dayStravenky = 1; 
+                dayStravenky = 1; // Víkendy a svátky osmičky = 1 stravenka
             } else {
+                // --- VŠEDNÍ DEN V TÝDNU ---
                 if (t === 'FO' || t === 'O') {
-                    dayStravenky = 1; 
+                    dayStravenky = 1; // Odpolední Ferrari a klasické odpolední = 1 stravenka
                 } else if (t === 'F' || t === 'R') {
-                    lc += 1; 
+                    lc += 1; // Ranní Ferrari a běžná ranní = OBĚD (0 stravenek)
                 }
             }
         }
 
-        // GLOBÁLNÍ FUNKCE 11+ HODIN
+        // GLOBÁLNÍ FUNKCE PRO SMĚNY 11+ HODIN
         if (actH > 11.0) {
             dayStravenky += 1;
         }
@@ -571,9 +577,10 @@ function calcPay() {
         ].map(([k, v]) => `<div class="payline"><span>${k}</span><span><b>${v}</b></span></div>`).join('');
     }
 
-    $('gross').textContent = '💼 Hrubá mzda: ' + money(gross);
-    $('net').textContent = '💵 Čistá mzda (odhad): ' + money(net);
-    $('meal').textContent = '🍽️ Stravenky: ' + mc + ' ks — ' + money(mc * 110);
+    if ($('gross')) $('gross').textContent = '💼 Hrubá mzda: ' + money(gross);
+    if ($('net')) $('net').textContent = '💵 Čistá mzda (odhad): ' + money(net);
+    if ($('meal')) $('meal').textContent = '🍽️ Stravenky: ' + mc + ' ks — ' + money(mc * 110);
+    
     const cafVal = state.cafeteria_ok ? '1 000,00 Kč' : '0,00 Kč';
     if ($('cafInfo')) {
         $('cafInfo').innerHTML = `🎁 Cafeterie (mimo čistou): <b>${cafVal}</b>`;
@@ -581,7 +588,7 @@ function calcPay() {
     state.yearSummary[current.getFullYear()] = state.yearSummary[current.getFullYear()] || {};
     state.yearSummary[current.getFullYear()][current.getMonth()] = { gross, net, hours: C.hours, mealCount: mc, mealValue: mc * 110, ts: Date.now() };
     save();
-    renderYearSummary();
+    try { renderYearSummary(); } catch(e){}
 }
 
 function renderYearSummary() {
