@@ -13,16 +13,13 @@ const MAP12 = {
 };
 
 const MAP8 = { 
-    R: 'R 05:25–13:56', 
+    R: 'R 06:00–14:15', // Čas srovnán na 8 hodin čistého času
     V: 'Dovolená' 
 };
 
 const MAP775 = { 
-    R: 'R 5:45–14:01', 
-    O: 'O 13:45–22:01', 
-    F: 'F 05:45–14:01 (Hluk)',
-    FO: 'FO 13:45–22:01 (Hluk+Stravenka)',
-    F16: 'F16 05:45–22:01 (Hluk+Oběd+Strav)',
+    R: 'R 06:00–14:16', // Ranní v režimu 7.75h
+    O: 'O 13:45–22:01', // Odpolední v režimu 7.75h
     V: 'Dovolená' 
 };
 
@@ -167,8 +164,8 @@ function updateHeader() {
     let label = '—';
     if (t !== '—') {
         if (t === 'R') {
-            if (state.mode === '7.75') label = 'R 05:45–14:01';
-            else label = isW(today) ? 'R 05:00–13:15' : 'R 05:25–13:56';
+            if (state.mode === '7.75') label = 'R 06:00–14:16 (7.75h)';
+            else label = 'R 08:00'; 
         } else if (t === 'F') {
             label = 'F 05:45–14:01 (Hluk)';
         } else {
@@ -182,8 +179,12 @@ function updateHeader() {
 }
 
 function nextCode(cur) {
-    const codes = ["", "R", "O", "D", "N", "F", "FO", "F16", "V"];
+    let codes = ["", "R", "O", "D", "N", "F", "FO", "F16", "V"];
+    if (state.mode === '7.75') {
+        codes = ["", "R", "O", "V"];
+    }
     let idx = codes.indexOf(cur);
+    if (idx === -1) return codes[0];
     return codes[(idx + 1) % codes.length];
 }
 
@@ -344,7 +345,6 @@ function updateStats() {
     if (state.mode === '7.75') shiftH = 7.75;
 
     let dDay = 0, nDay = 0, vac = 0, hours = 0, nightH = 0, afterH = 0, weekendH = 0, rDays = 0, oDays = 0, fDays = 0, autoOT = 0;
-    
     let holWorkedH = 0;
     let holPaidHomeH = 0;
     let continuousH = 0;
@@ -357,7 +357,7 @@ function updateStats() {
         const isWk = isW(dt);
 
         if (isH && !isWk && (!t || t === 'V')) {
-            let hHomeVal = (state.mode === '12') ? 11.25 : shiftH;
+            let hHomeVal = (state.mode === '12') ? 11.25 : (state.mode === '7.75' ? 7.75 : 8.0);
             holPaidHomeH += hHomeVal;
             if (t === 'V') vac++;
             continue;
@@ -366,8 +366,14 @@ function updateStats() {
         if (!t) continue;
         if (t === 'V') { vac++; continue; }
 
-        let baseShiftH = (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') ? 7.75 : DAILY_WORKED;
-        if (state.mode === '8' && t === 'R') baseShiftH = 8.0;
+        let baseShiftH = DAILY_WORKED;
+        if (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') {
+            if (state.mode === '7.75') {
+                baseShiftH = 7.75; // V režimu 7.75h je ranní i odpolední striktně 7.75h čistého času!
+            } else {
+                baseShiftH = 8.0; // V režimech 12 a 8 je každá ranní/odpolední plných 8.0h
+            }
+        }
 
         let curH = (state.customHours && state.customHours[key] !== undefined) ? nval(state.customHours[key]) : baseShiftH;
 
@@ -502,33 +508,48 @@ function calcPay() {
         
         if (!t || t === '' || t === 'V') continue;
         
-        const noL = isSat(dt) || isHoliday(dt);
+        const isH = isHoliday(dt);
+
+        let baseH = 11.25;
+        if (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') {
+            baseH = (state.mode === '7.75') ? 7.75 : 8.0;
+        }
+        let actH = (state.customHours && state.customHours[key] !== undefined) ? nval(state.customHours[key]) : baseH;
+
+        let dayStravenky = 0;
 
         if (t === 'N') {
-            mc += 2;
+            dayStravenky = 2; 
         } else if (t === 'D') { 
-            if (isW(dt) || isHoliday(dt)) {
-                mc += 2; 
+            if (isW(dt) || isH) {
+                dayStravenky = 2; 
             } else { 
-                // Úterý, Pondělí, Úterý v týdnu
-                mc += 1;
+                dayStravenky = 1; 
                 lc += 1;
             } 
         } else if (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') { 
             if (t === 'R' && isSat(dt)) satB += 500;
             
             if (t === 'F16') {
-                mc += 1; lc += 1;
-            } else if (isW(dt) || isHoliday(dt)) {
-                mc += 1;
-            } else if (t === 'FO' || t === 'F') {
-                mc += 1; 
-            } else if (state.mode === '7.75') {
-                if (t === 'O') mc += 1; 
+                dayStravenky = 1; lc += 1;
+            } else if (isW(dt) || isH) {
+                dayStravenky = 1; 
             } else {
-                if(!noL) lc++; else mc++; 
+                if (t === 'FO' || t === 'O') {
+                    dayStravenky = 1; 
+                } else if (t === 'F' || t === 'R') {
+                    lc += 1; 
+                }
             }
         }
+
+        // --- PŘESNÉ LOGICKÉ OMEZENÍ 11+ HODIN ---
+        // Bonusová stravenka naskočí pouze u ranních směn (R a F) ve všední dny, pokud hodiny přesáhnou 11.0 h!
+        if (!isW(dt) && !isH && (t === 'R' || t === 'F') && actH > 11.0) {
+            dayStravenky += 1;
+        }
+
+        mc += dayStravenky;
     }
 
     const mealDeduct = mc * MEAL_DEDUCT;
@@ -634,8 +655,11 @@ function renderCalendar() {
                 let currentH = state.customHours[dateKey];
                 if (currentH === undefined) {
                     let code = state.shifts[dateKey];
-                    currentH = (code === 'R' || code === 'O' || code === 'F' || code === 'FO') ? 7.75 : (code === 'F16' ? 16.25 : 11.25);
-                    if (state.mode === '8' && code === 'R') currentH = 8.0;
+                    if (code === 'R' || code === 'O' || code === 'F' || code === 'FO') {
+                        currentH = (state.mode === '7.75') ? 7.75 : 8.0;
+                    } else {
+                        currentH = (code === 'F16' ? 16.25 : 11.25);
+                    }
                 }
                 
                 let val = prompt(`Upravit odpracované hodiny pro den ${dateKey} (aktuálně: ${currentH} h):`, currentH);
