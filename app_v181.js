@@ -13,13 +13,13 @@ const MAP12 = {
 };
 
 const MAP8 = { 
-    R: 'R 06:00–14:15', // Čas srovnán na 8 hodin čistého času
+    R: 'R 06:00–14:15', 
     V: 'Dovolená' 
 };
 
 const MAP775 = { 
-    R: 'R 06:00–14:16', // Ranní v režimu 7.75h
-    O: 'O 13:45–22:01', // Odpolední v režimu 7.75h
+    R: 'R 06:00–14:16', 
+    O: 'O 13:45–22:01', 
     V: 'Dovolená' 
 };
 
@@ -369,9 +369,10 @@ function updateStats() {
         let baseShiftH = DAILY_WORKED;
         if (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') {
             if (state.mode === '7.75') {
-                baseShiftH = 7.75; // V režimu 7.75h je ranní i odpolední striktně 7.75h čistého času!
+                baseShiftH = 7.75; 
             } else {
-                baseShiftH = 8.0; // V režimech 12 a 8 je každá ranní/odpolední plných 8.0h
+                // OPRAVA: Pouze čistě ranní 'R' má 8.0h. Odpolední 'O', F i FO mají natvrdo 7.75h!
+                baseShiftH = (t === 'R') ? 8.0 : 7.75; 
             }
         }
 
@@ -512,7 +513,7 @@ function calcPay() {
 
         let baseH = 11.25;
         if (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') {
-            baseH = (state.mode === '7.75') ? 7.75 : 8.0;
+            baseH = (state.mode === '7.75') ? 7.75 : ((t === 'R') ? 8.0 : 7.75);
         }
         let actH = (state.customHours && state.customHours[key] !== undefined) ? nval(state.customHours[key]) : baseH;
 
@@ -544,7 +545,6 @@ function calcPay() {
         }
 
         // --- PŘESNÉ LOGICKÉ OMEZENÍ 11+ HODIN ---
-        // Bonusová stravenka naskočí pouze u ranních směn (R a F) ve všední dny, pokud hodiny přesáhnou 11.0 h!
         if (!isW(dt) && !isH && (t === 'R' || t === 'F') && actH > 11.0) {
             dayStravenky += 1;
         }
@@ -656,7 +656,7 @@ function renderCalendar() {
                 if (currentH === undefined) {
                     let code = state.shifts[dateKey];
                     if (code === 'R' || code === 'O' || code === 'F' || code === 'FO') {
-                        currentH = (state.mode === '7.75') ? 7.75 : 8.0;
+                        currentH = (state.mode === '7.75') ? 7.75 : ((code === 'R') ? 8.0 : 7.75);
                     } else {
                         currentH = (code === 'F16' ? 16.25 : 11.25);
                     }
