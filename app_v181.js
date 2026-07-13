@@ -13,12 +13,12 @@ const MAP12 = {
 };
 
 const MAP8 = { 
-    R: 'R 06:00–14:31', // Aktualizovaný výchozí čas ranní v týdnu
+    R: 'R 06:00–14:31', 
     V: 'Dovolená' 
 };
 
 const MAP775 = { 
-    R: 'R 06:00–14:31', // Srovnaný čas i pro režim 7.75h
+    R: 'R 06:00–14:31', 
     O: 'O 13:45–22:01', 
     F: 'F 05:45–14:01 (Hluk)',
     FO: 'FO 13:45–22:01 (Hluk+Stravenka)',
@@ -156,7 +156,7 @@ function applyBackground() {
     const layer = $('bg-layer');
     if (!layer) return;
     let url = 'bg_12h.jpg';
-    if (state.mode === '8' && url === 'bg_8h.jpg');
+    if (state.mode === '8') url = 'bg_8h.jpg';
     if (state.mode === '7.75') url = 'bg_775h.jpg';
     layer.style.backgroundImage = `url("backgrounds/${url}")`;
 }
@@ -167,7 +167,6 @@ function updateHeader() {
     let label = '—';
     if (t !== '—') {
         if (t === 'R') {
-            // Posun času ranní podle toho, zda je sobota nebo všední den
             if (isSat(today)) label = 'R 05:00–13:30';
             else label = 'R 06:00–14:31';
         } else if (t === 'F') {
@@ -341,7 +340,7 @@ function updateStats() {
     const last = new Date(y, m + 1, 0);
     const DAILY_WORKED = 11.25;
     const VAC12 = 11.25;
-    let shiftH = 8.5; // Výchozí ranní fond prodloužen na 8.5 hod (06:00 - 14:31)
+    let shiftH = 8.5; 
     if (state.mode === '7.75') shiftH = 7.75;
 
     let dDay = 0, nDay = 0, vac = 0, hours = 0, nightH = 0, afterH = 0, weekendH = 0, rDays = 0, oDays = 0, fDays = 0, autoOT = 0;
@@ -366,7 +365,6 @@ function updateStats() {
         if (!t) continue;
         if (t === 'V') { vac++; continue; }
 
-        // Sobotní osmička má fond 8.0h, ranní v týdnu 8.5h
         let baseShiftH = (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') ? (isSat(dt) ? 8.0 : 8.5) : DAILY_WORKED;
         if (t === 'F' || t === 'FO' || t === 'F16') baseShiftH = 7.75;
 
@@ -423,8 +421,35 @@ function updateStats() {
     save();
 }
 
+function avgRate() {
+    const man = nval(state.avg.avg_manual);
+    if (man > 0) {
+        if ($('avg_info')) $('avg_info').innerHTML = `Průměr z pásky (ručně): <b>${money(man)}</b>`;
+        return man;
+    }
+    const y = current.getFullYear();
+    const m = current.getMonth();
+    let sumNet = 0, sumHours = 0;
+    for (let i = 1; i <= 3; i++) {
+        let d = new Date(y, m - i, 1);
+        let sy = d.getFullYear(), sm = d.getMonth();
+        if (state.yearSummary[sy] && state.yearSummary[sy][sm]) {
+            const h = state.yearSummary[sy][sm];
+            sumNet += (h.net || 0);
+            sumHours += (h.hours || 0);
+        }
+    }
+    if (sumNet > 0 && sumHours > 0) {
+        const calculatedAvg = sumNet / sumHours;
+        if ($('avg_info')) $('avg_info').innerHTML = `Auto průměr z historie: <b>${calculatedAvg.toFixed(2)} Kč/h</b>`;
+        return calculatedAvg;
+    }
+    if ($('avg_info')) $('avg_info').innerHTML = `Zadejte průměr z pásky!`;
+    return 0; 
+}
+
 function calcPay() {
-    const avg = avgRate();
+    const avg = avgRate(); // VRÁCENO ZPĚT: Výpočet průměrné mzdy pro funkčnost celého skriptu
     const C = state._calc || { hours: 0, afterH: 0, nightH: 0, weekendH: 0, vac: 0, holWorkedH: 0, holPaidHomeH: 0, continuousH: 0, autoOT: 0, fDays: 0 };
     const ymKey = ym(current);
     const effB = nval(state.monthRates[ymKey]) || nval(state.rates['rate_base']) || 148.50;
@@ -476,21 +501,19 @@ function calcPay() {
         
         const isH = isHoliday(dt);
 
-        // Zjistíme reálně odpracované hodiny (buď upravené nebo výchozí podle typu směny)
         let baseH = (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') ? (isSat(dt) ? 8.0 : 8.5) : 11.25;
         if (t === 'F' || t === 'FO' || t === 'F16') baseH = 7.75;
         let actH = (state.customHours && state.customHours[key] !== undefined) ? nval(state.customHours[key]) : baseH;
 
         let dayStravenky = 0;
 
-        // --- MATEMATIKA STRAVENEK A OBĚDŮ PODLE MATERIÁLŮ MADETY ---
         if (t === 'N') {
-            dayStravenky = 2; // Noční směna má automaticky 2 stravenky
+            dayStravenky = 2; 
         } else if (t === 'D') { 
             if (isW(dt) || isH) {
-                dayStravenky = 2; // Denní dvanáctka o víkendu nebo svátku = 2 stravenky
+                dayStravenky = 2; 
             } else { 
-                dayStravenky = 1; // Denní dvanáctka v týdnu = 1 stravenka + 1 oběd
+                dayStravenky = 1; 
                 lc += 1;
             } 
         } else if (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') {
@@ -499,19 +522,17 @@ function calcPay() {
             if (t === 'F16') {
                 dayStravenky = 1; lc += 1;
             } else if (isW(dt) || isH) {
-                dayStravenky = 1; // O víkendech a svátcích má každá osmička stravenku
+                dayStravenky = 1; 
             } else {
-                // --- VŠEDNÍ DEN V TÝDNU ---
                 if (t === 'FO' || t === 'O') {
-                    dayStravenky = 1; // FO a běžná odpolední v týdnu = 1 stravenka
+                    dayStravenky = 1; 
                 } else if (t === 'F' || t === 'R') {
-                    lc += 1; // Ranní Ferrari a běžná ranní v týdnu = 1 oběd (0 stravenek)
+                    lc += 1; 
                 }
             }
         }
 
-        // --- GLOBÁLNÍ PRAVIDLO 11+ HODIN ---
-        // Pokud směna překročila 11 hodin, vzniká nárok na další stravenku
+        // GLOBÁLNÍ FUNKCE 11+ HODIN
         if (actH > 11.0) {
             dayStravenky += 1;
         }
@@ -623,7 +644,7 @@ function renderCalendar() {
                 let currentH = state.customHours[dateKey];
                 if (currentH === undefined) {
                     let code = state.shifts[dateKey];
-                    currentH = (code === 'R' || code === 'O' || code === 'F' || code === 'FO') ? (isSat(dt) ? 8.0 : 8.5) : (code === 'F16' ? 16.25 : 11.25);
+                    currentH = (code === 'R' || code === 'O' || code === 'F' || code === 'FO' || code === 'F16') ? (isSat(dt) ? 8.0 : 8.5) : (code === 'F16' ? 16.25 : 11.25);
                 }
                 
                 let val = prompt(`Upravit odpracované hodiny pro den ${dateKey} (aktuálně: ${currentH} h):`, currentH);
