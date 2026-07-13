@@ -449,7 +449,7 @@ function avgRate() {
 }
 
 function calcPay() {
-    const avg = avgRate(); // VRÁCENO ZPĚT: Výpočet průměrné mzdy pro funkčnost celého skriptu
+    const avg = avgRate(); 
     const C = state._calc || { hours: 0, afterH: 0, nightH: 0, weekendH: 0, vac: 0, holWorkedH: 0, holPaidHomeH: 0, continuousH: 0, autoOT: 0, fDays: 0 };
     const ymKey = ym(current);
     const effB = nval(state.monthRates[ymKey]) || nval(state.rates['rate_base']) || 148.50;
@@ -644,7 +644,7 @@ function renderCalendar() {
                 let currentH = state.customHours[dateKey];
                 if (currentH === undefined) {
                     let code = state.shifts[dateKey];
-                    currentH = (code === 'R' || code === 'O' || code === 'F' || code === 'FO' || code === 'F16') ? (isSat(dt) ? 8.0 : 8.5) : (code === 'F16' ? 16.25 : 11.25);
+                    currentH = (code === 'R' || code === 'O' || code === 'F' || code === 'FO') ? (isSat(dt) ? 8.0 : 8.5) : (code === 'F16' ? 16.25 : 11.25);
                 }
                 
                 let val = prompt(`Upravit odpracované hodiny pro den ${dateKey} (aktuálně: ${currentH} h):`, currentH);
