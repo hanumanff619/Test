@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Směnářek</title>
     <style>
-        /* TADY JE TO CSS – Upraveno pro mobilní displeje, aby se nic neořezávalo */
+        /* NÁVRAT K TVÉMU PŮVODNÍMU TOP DESIGNU */
         * { box-sizing: border-box; }
         body {
             font-family: Arial, sans-serif;
@@ -13,20 +13,19 @@
             color: #f8fafc;
             margin: 0;
             padding: 0;
-            max-width: 100%;
-            overflow-x: hidden;
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100vh;
         }
         #bg-layer {
-            position: fixed; top:0; left:0; width:100%; height:100%;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-size: cover; background-position: center;
             opacity: 0.15; z-index: -1; transition: background 0.5s;
         }
         .container {
             width: 100%;
-            max-width: 500px;
+            max-width: 600px;
             padding: 1rem;
         }
         h1 { text-align: center; margin: 0.5rem 0; font-size: 1.8rem; }
@@ -40,13 +39,13 @@
         .modes { display: flex; gap: 0.25rem; justify-content: center; margin-bottom: 1rem; }
         .modes button { padding: 0.35rem 0.75rem; font-size: 0.85rem; }
         
-        /* Kalendář */
         table { width: 100%; border-collapse: collapse; background: rgba(30,41,59,0.7); border-radius: 8px; overflow: hidden; }
         th, td { width: 14.28%; text-align: center; padding: 0.5rem 0; position: relative; vertical-align: top; }
         th { background: #1e293b; color: #94a3b8; font-size: 0.85rem; font-weight: normal; }
-        td { height: 65px; border: 1px solid #334155; cursor: pointer; transition: background 0.2s; }
+        td { height: 80px; border: 1px solid #334155; cursor: pointer; transition: background 0.2s; }
         td:hover { background: rgba(51,65,85,0.5); }
         .daynum { font-size: 0.85rem; color: #64748b; margin-bottom: 2px; }
+        td.today { background: rgba(56,189,248,0.15); }
         td.today .daynum { color: #38bdf8; font-weight: bold; }
         td.selected { outline: 2px solid #38bdf8; z-index: 1; }
         
@@ -55,7 +54,6 @@
             font-weight: bold; border-radius: 4px; margin-top: 2px;
         }
         
-        /* Barvičky směn */
         td.D .badge { background: #0284c7; color: #fff; }
         td.N .badge { background: #b45309; color: #fff; }
         td.R .badge { background: #16a34a; color: #fff; }
@@ -64,26 +62,16 @@
         td.FO .badge { background: #e11d48; color: #fff; }
         td.F16 .badge { background: #7c3aed; color: #fff; }
         td.V .badge { background: #475569; color: #fff; }
-
-        td.D { background: rgba(2,132,199,0.1); }
-        td.N { background: rgba(180,83,9,0.1); }
-        td.R { background: rgba(22,163,74,0.1); }
-        td.O { background: rgba(234,88,12,0.1); }
-        td.F { background: rgba(220,38,38,0.1); }
-        td.FO { background: rgba(225,29,72,0.1); }
-        td.F16 { background: rgba(124,58,237,0.1); }
-        td.V { background: rgba(71,85,105,0.1); }
         
-        /* Panel výpočtů */
         .panel { background: rgba(30,41,59,0.8); padding: 1rem; border-radius: 8px; margin-top: 1rem; border: 1px solid #334155; }
-        .panel h3 { margin-top: 0; margin-bottom: 0.75rem; border-bottom: 1px solid #334155; padding-bottom: 0.5rem; font-size: 1.2rem; }
+        .panel h3 { margin-top: 0; margin-bottom: 0.75rem; border-bottom: 1px solid #334155; padding-bottom: 0.5rem; font-size: 1.1rem; }
         .row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
         .row label { flex: 1; font-size: 0.9rem; color: #94a3b8; }
-        .row input { width: 100px; background: #1e293b; color: #fff; border: 1px solid #475569; padding: 0.25rem 0.5rem; border-radius: 4px; text-align: right; }
+        .row input { width: 100px; background: #1e293b; color: #fff; border: 1px solid #475569; padding: 0.25rem 0.5rem; border-radius: 4px; text-align: right; font-size: 0.9rem; }
         
         .payline { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 0.25rem; }
         .payline span:first-child { color: #94a3b8; }
-        .total-box { font-size: 1.1rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #475569; }
+        .total-box { font-size: 1.1rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #475569; font-weight: bold; }
         .net-box { color: #4ade80; font-weight: bold; font-size: 1.3rem; margin-top: 0.25rem; }
     </style>
 </head>
