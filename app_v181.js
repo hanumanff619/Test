@@ -31,6 +31,7 @@ if (!state.mode) state.mode = '12';
 if (state.bonus_pct == null) state.bonus_pct = 10;
 if (state.annual_bonus == null) state.annual_bonus = 0;
 if (state.cafeteria_ok == null) state.cafeteria_ok = false;
+if (state.lunches_775_ok == null) state.lunches_775_ok = true; // Výchozí stav: zapnuto
 
 if (!state.monthFunds) state.monthFunds = {};
 if (!state.monthRates) state.monthRates = {};
@@ -245,6 +246,16 @@ function bindInputsOnce() {
         };
     }
 
+    // NOVÉ NAVÁZÁNÍ POLÍČKA PRO OBĚDY V REŽIMU 7.75
+    if ($('lunch_check')) {
+        $('lunch_check').checked = !!state.lunches_775_ok;
+        $('lunch_check').onchange = e => {
+            state.lunches_775_ok = e.target.checked;
+            save();
+            calcPay();
+        };
+    }
+
     const fbm = $('fund_bonus_month');
     if (fbm) {
         fbm.oninput = e => {
@@ -357,7 +368,8 @@ function updateStats() {
         const isWk = isW(dt);
 
         if (isH && !isWk && (!t || t === 'V')) {
-            let hHomeVal = (state.mode === '12') ? 11.25 : (state.mode === '7.75' ? 7.75 : 8.0);
+            let hHomeVal = (state.mode === '7.75') ? 7.75 : 8.0;
+            if (state.mode === '12') hHomeVal = 11.25;
             holPaidHomeH += hHomeVal;
             if (t === 'V') vac++;
             continue;
@@ -371,7 +383,6 @@ function updateStats() {
             if (state.mode === '7.75') {
                 baseShiftH = 7.75; 
             } else {
-                // OPRAVA: Pouze čistě ranní 'R' má 8.0h. Odpolední 'O', F i FO mají natvrdo 7.75h!
                 baseShiftH = (t === 'R') ? 8.0 : 7.75; 
             }
         }
@@ -539,12 +550,17 @@ function calcPay() {
                 if (t === 'FO' || t === 'O') {
                     dayStravenky = 1; 
                 } else if (t === 'F' || t === 'R') {
-                    lc += 1; 
+                    // ÚPRAVA PRO REŽIM 7.75 PRO OBĚDY NA RANNÍ
+                    if (state.mode === '7.75') {
+                        if (state.lunches_775_ok) lc += 1; // Přičte se, jen pokud je checkbox zaškrtnutý
+                    } else {
+                        lc += 1; // V režimech 12 a 8 se na ranní v týdnu počítá oběd automaticky
+                    }
                 }
             }
         }
 
-        // --- PŘESNÉ LOGICKÉ OMEZENÍ 11+ HODIN ---
+        // --- SCHVÁLENÉ LOGICKÉ OMEZENÍ 11+ HODIN ---
         if (!isW(dt) && !isH && (t === 'R' || t === 'F') && actH > 11.0) {
             dayStravenky += 1;
         }
