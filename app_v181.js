@@ -13,12 +13,12 @@ const MAP12 = {
 };
 
 const MAP8 = { 
-    R: 'R 06:00–14:15', 
+    R: 'R 06:00–14:31', // OPRAVENO: Popisek pro 8h ranní sektor
     V: 'Dovolená' 
 };
 
 const MAP775 = { 
-    R: 'R 06:00–14:16', 
+    R: 'R 05:45–14:01', // OPRAVENO: Popisek pro 7.75h ranní sektor
     O: 'O 13:45–22:01', 
     V: 'Dovolená' 
 };
@@ -167,8 +167,8 @@ function updateHeader() {
     let label = '—';
     if (t !== '—') {
         if (t === 'R') {
-            if (state.mode === '7.75') label = 'R 06:00–14:16 (7.75h)';
-            else label = 'R 08:00'; 
+            if (state.mode === '7.75') label = 'R 05:45–14:01 (7.75h)';
+            else label = 'R 06:00–14:31 (8h)'; 
         } else if (t === 'F') {
             label = 'F 05:45–14:01 (Hluk)';
         } else {
@@ -248,7 +248,6 @@ function bindInputsOnce() {
         };
     }
 
-    // OPRAVA: Pouze navážeme event, stav budeme kontrolovat a vnucovat čistě přes refresh funkci
     const lcCheck = $('lunch_check');
     if (lcCheck) {
         lcCheck.onchange = e => {
@@ -346,7 +345,6 @@ function refreshMonthScopedInputs() {
     const key = ym(current);
     if ($('fund_bonus_month')) $('fund_bonus_month').value = state.monthFunds[key] ?? '';
     if ($('rate_base_month')) $('rate_base_month').value = state.monthRates[key] ?? '';
-    // OPRAVA: Tady bezpečně a spolehlivě vnutíme stav z paměti při každém překreslení/načtení stránky
     if ($('lunch_check')) $('lunch_check').checked = (state.lunches_775_ok === true);
 }
 
