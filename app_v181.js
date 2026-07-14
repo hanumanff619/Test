@@ -31,7 +31,7 @@ if (!state.mode) state.mode = '12';
 if (state.bonus_pct == null) state.bonus_pct = 10;
 if (state.annual_bonus == null) state.annual_bonus = 0;
 if (state.cafeteria_ok == null) state.cafeteria_ok = false;
-if (state.lunches_775_ok == null) state.lunches_775_ok = true; // Výchozí stav: zapnuto
+if (state.lunches_775_ok == null) state.lunches_775_ok = true; 
 
 if (!state.monthFunds) state.monthFunds = {};
 if (!state.monthRates) state.monthRates = {};
@@ -84,7 +84,9 @@ function money(x) {
 }
 
 function save() {
-    localStorage.setItem('smenarek_state_v181', JSON.stringify(state));
+    try {
+        localStorage.setItem('smenarek_state_v181', JSON.stringify(state));
+    } catch(e) {}
 }
 
 function rShiftNightH(dt) {
@@ -246,10 +248,10 @@ function bindInputsOnce() {
         };
     }
 
-    // NOVÉ NAVÁZÁNÍ POLÍČKA PRO OBĚDY V REŽIMU 7.75
-    if ($('lunch_check')) {
-        $('lunch_check').checked = !!state.lunches_775_ok;
-        $('lunch_check').onchange = e => {
+    // OPRAVA: Pouze navážeme event, stav budeme kontrolovat a vnucovat čistě přes refresh funkci
+    const lcCheck = $('lunch_check');
+    if (lcCheck) {
+        lcCheck.onchange = e => {
             state.lunches_775_ok = e.target.checked;
             save();
             calcPay();
@@ -344,6 +346,8 @@ function refreshMonthScopedInputs() {
     const key = ym(current);
     if ($('fund_bonus_month')) $('fund_bonus_month').value = state.monthFunds[key] ?? '';
     if ($('rate_base_month')) $('rate_base_month').value = state.monthRates[key] ?? '';
+    // OPRAVA: Tady bezpečně a spolehlivě vnutíme stav z paměti při každém překreslení/načtení stránky
+    if ($('lunch_check')) $('lunch_check').checked = (state.lunches_775_ok === true);
 }
 
 function updateStats() {
@@ -442,35 +446,10 @@ function updateStats() {
     save();
 }
 
-function avgRate() {
-    const man = nval(state.avg.avg_manual);
-    if (man > 0) {
-        if ($('avg_info')) $('avg_info').innerHTML = `Průměr z pásky (ručně): <b>${money(man)}</b>`;
-        return man;
-    }
-    const y = current.getFullYear();
-    const m = current.getMonth();
-    let sumNet = 0, sumHours = 0;
-    for (let i = 1; i <= 3; i++) {
-        let d = new Date(y, m - i, 1);
-        let sy = d.getFullYear(), sm = d.getMonth();
-        if (state.yearSummary[sy] && state.yearSummary[sy][sm]) {
-            const h = state.yearSummary[sy][sm];
-            sumNet += (h.net || 0);
-            sumHours += (h.hours || 0);
-        }
-    }
-    if (sumNet > 0 && sumHours > 0) {
-        const calculatedAvg = sumNet / sumHours;
-        if ($('avg_info')) $('avg_info').innerHTML = `Auto průměr z historie: <b>${calculatedAvg.toFixed(2)} Kč/h</b>`;
-        return calculatedAvg;
-    }
-    if ($('avg_info')) $('avg_info').innerHTML = `Zadejte průměr z pásky!`;
-    return 0; 
-}
-
 function calcPay() {
-    const avg = avgRate();
+    let avg = 0;
+    try { avg = avgRate(); } catch(e) { avg = nval(state.avg.avg_manual); }
+
     const C = state._calc || { hours: 0, afterH: 0, nightH: 0, weekendH: 0, vac: 0, holWorkedH: 0, holPaidHomeH: 0, continuousH: 0, autoOT: 0, fDays: 0 };
     const ymKey = ym(current);
     const effB = nval(state.monthRates[ymKey]) || nval(state.rates['rate_base']) || 148.50;
@@ -550,17 +529,15 @@ function calcPay() {
                 if (t === 'FO' || t === 'O') {
                     dayStravenky = 1; 
                 } else if (t === 'F' || t === 'R') {
-                    // ÚPRAVA PRO REŽIM 7.75 PRO OBĚDY NA RANNÍ
                     if (state.mode === '7.75') {
-                        if (state.lunches_775_ok) lc += 1; // Přičte se, jen pokud je checkbox zaškrtnutý
+                        if (state.lunches_775_ok === true) lc += 1; 
                     } else {
-                        lc += 1; // V režimech 12 a 8 se na ranní v týdnu počítá oběd automaticky
+                        lc += 1; 
                     }
                 }
             }
         }
 
-        // --- SCHVÁLENÉ LOGICKÉ OMEZENÍ 11+ HODIN ---
         if (!isW(dt) && !isH && (t === 'R' || t === 'F') && actH > 11.0) {
             dayStravenky += 1;
         }
@@ -599,9 +576,9 @@ function calcPay() {
         ].map(([k, v]) => `<div class="payline"><span>${k}</span><span><b>${v}</b></span></div>`).join('');
     }
 
-    $('gross').textContent = '💼 Hrubá mzda: ' + money(gross);
-    $('net').textContent = '💵 Čistá mzda (odhad): ' + money(net);
-    $('meal').textContent = '🍽️ Stravenky: ' + mc + ' ks — ' + money(mc * 110);
+    if ($('gross')) $('gross').textContent = '💼 Hrubá mzda: ' + money(gross);
+    if ($('net')) $('net').textContent = '💵 Čistá mzda (odhad): ' + money(net);
+    if ($('meal')) $('meal').textContent = '🍽️ Stravenky: ' + mc + ' ks — ' + money(mc * 110);
     const cafVal = state.cafeteria_ok ? '1 000,00 Kč' : '0,00 Kč';
     if ($('cafInfo')) {
         $('cafInfo').innerHTML = `🎁 Cafeterie (mimo čistou): <b>${cafVal}</b>`;
@@ -609,7 +586,7 @@ function calcPay() {
     state.yearSummary[current.getFullYear()] = state.yearSummary[current.getFullYear()] || {};
     state.yearSummary[current.getFullYear()][current.getMonth()] = { gross, net, hours: C.hours, mealCount: mc, mealValue: mc * 110, ts: Date.now() };
     save();
-    renderYearSummary();
+    try { renderYearSummary(); } catch(e) {}
 }
 
 function renderYearSummary() {
