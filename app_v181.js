@@ -153,7 +153,7 @@ function isHoliday(dt) {
 }
 
 function applyBackground() {
-    const layer = $('bg-layer');
+    const layer = Brod = $('bg-layer');
     if (!layer) return;
     let url = 'bg_12h.jpg';
     if (state.mode === '8') url = 'bg_8h.jpg';
@@ -358,6 +358,7 @@ function updateStats() {
     let holWorkedH = 0;
     let holPaidHomeH = 0;
     let continuousH = 0;
+    let vacHoursTotal = 0; // Pomocná proměnná pro ukládání hodin dovolené
 
     for (let i = 1; i <= last.getDate(); i++) {
         const dt = new Date(y, m, i);
@@ -366,10 +367,14 @@ function updateStats() {
         const isH = isHoliday(dt);
         const isWk = isW(dt);
 
-        // NAKONFIGUROVÁNO NA ZÁKLADĚ REALITY Z MZDOVKY
+        // SVÁTKY DOMA (VŠEDNÍ DEN)
         if (isH && !isWk) {
-            if (!t || t === '') {
+            if (!t || t === '' || t === 'V') {
                 holPaidHomeH += (state.mode === '7.75') ? 7.75 : 7.50; 
+                if (t === 'V') {
+                    vac++;
+                    vacHoursTotal += (state.mode === '7.75') ? 7.75 : 7.50;
+                }
                 continue;
             }
         }
@@ -378,7 +383,8 @@ function updateStats() {
         
         if (t === 'V') { 
             vac++; 
-            // Dovolená přičte hodiny podle režimu přímo do fondu náhrad za dovolenou
+            // OPRAVA: Výpočet správných hodin za dovolenou na základě vybraného režimu
+            vacHoursTotal += (state.mode === '7.75') ? 7.75 : 7.50;
             continue; 
         }
 
@@ -442,7 +448,7 @@ function updateStats() {
             `<div class="payline"><span>Víkendové hodiny</span><span><b>${r2(weekendH)}</b> h</span></div>`
         ].join('');
     }
-    state._calc = { hours, afterH, nightH, weekendH, vac, holWorkedH, holPaidHomeH, continuousH, autoOT, fDays };
+    state._calc = { hours, afterH, nightH, weekendH, vac, holWorkedH, holPaidHomeH, continuousH, autoOT, fDays, vacHoursTotal };
     save();
 }
 
@@ -477,7 +483,7 @@ function calcPay() {
     let avg = 0;
     try { avg = avgRate(); } catch(e) { avg = nval(state.avg.avg_manual); }
 
-    const C = state._calc || { hours: 0, afterH: 0, nightH: 0, weekendH: 0, vac: 0, holWorkedH: 0, holPaidHomeH: 0, continuousH: 0, autoOT: 0, fDays: 0 };
+    const C = state._calc || { hours: 0, afterH: 0, nightH: 0, weekendH: 0, vac: 0, holWorkedH: 0, holPaidHomeH: 0, continuousH: 0, autoOT: 0, fDays: 0, vacHoursTotal: 0 };
     const ymKey = ym(current);
     const effB = nval(state.monthRates[ymKey]) || nval(state.rates['rate_base']) || 148.50;
 
@@ -494,7 +500,6 @@ function calcPay() {
     const nightPay = r.n * C.nightH;
     const weekPay = r.v * C.weekendH;
     
-    // SVÁTKY DOMA: Přesně podle nařízení mzdovky
     const holWorkedPay = (avg * 1.25) * (C.holWorkedH || 0);
     const holHomePay = avg * (C.holPaidHomeH || 0);
     const holPay = holWorkedPay + holHomePay;
@@ -505,9 +510,8 @@ function calcPay() {
     const otExtraPay = (avg * 0.25) * totalOT;
     const primeP = basePay * (nval(state.bonus_pct) / 100);
     
-    // DOVOLENÁ: Natvrdo oddělena od svátků a počítána 7.50h pro 12 a 8, nebo 7.75h pro 7.75!
-    const vacH = (state.mode === '7.75') ? 7.75 : 7.50;
-    const vacPay = vacH * avg * C.vac;
+    // OPRAVA: Dovolená teď spolehlivě bere přesnou proměnnou hodin napočítanou ve stats!
+    const vacPay = avg * (C.vacHoursTotal || 0);
     
     const hlukPay = C.fDays * (7.75 * 6);
 
@@ -680,7 +684,7 @@ function renderCalendar() {
                     let code = state.shifts[dateKey];
                     if (code === 'V') {
                         currentH = (state.mode === '7.75') ? 7.75 : 7.50;
-                    } else if (code === 'R' || code === 'O' || code === 'F' || code === 'FO') {
+                    } else if (code === 'R' || code === 'O' || code === 'F' || code === 'FO' || code === 'F16') {
                         currentH = (state.mode === '7.75') ? 7.75 : ((code === 'R') ? 8.0 : 7.75);
                     } else {
                         currentH = (code === 'F16' ? 16.25 : 11.25);
