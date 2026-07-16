@@ -182,7 +182,6 @@ function nextCode(cur) {
     return codes[(idx + 1) % codes.length];
 }
 
-// Nastavení směny
 function setShift(dateStr, t, rerender = true) {
     const valid = ['R', 'O', 'D', 'N', 'F', 'FO', 'F16', 'V', ''];
     if (!valid.includes(t)) return;
@@ -336,7 +335,8 @@ function updateStats() {
 
     let dDay = 0, nDay = 0, vac = 0, hours = 0, nightH = 0, afterH = 0, weekendH = 0, rDays = 0, oDays = 0, fDays = 0, autoOT = 0;
     let holWorkedH = 0;
-    let holPaidHomeDays = 0; // Jen počítáme dny svátků doma
+    let holPaidHomeDays = 0;
+    let continuousH = 0; // Proměnná pro ukládání hodin nepřetržitého provozu
 
     for (let i = 1; i <= last.getDate(); i++) {
         const dt = new Date(y, m, i);
@@ -345,7 +345,6 @@ function updateStats() {
         const isH = isHoliday(dt);
         const isWk = isW(dt);
 
-        // SVÁTEK DOMA (Všední den bez směny)
         if (isH && !isWk && (!t || t === '')) {
             holPaidHomeDays++;
             continue;
@@ -384,10 +383,12 @@ function updateStats() {
             }
         } else if (t === 'D') {
             dDay++; hours += curH; 
+            continuousH += curH; // Přičtení hodin denní směny
             if (isWk) weekendH += curH; 
             if (isH) holWorkedH += curH;
         } else if (t === 'N') {
             nDay++; hours += curH; 
+            continuousH += curH; // Přičtení hodin noční směny
             afterH += Math.min(4, Math.max(0, curH - 7.25)); 
             nightH += Math.min(7.25, curH);
             if (isWk) weekendH += curH; 
@@ -409,7 +410,7 @@ function updateStats() {
             `<div class="payline"><span>Víkendové hodiny</span><span><b>${r2(weekendH)}</b> h</span></div>`
         ].join('');
     }
-    state._calc = { hours, afterH, nightH, weekendH, vac, holWorkedH, holPaidHomeDays, autoOT, fDays };
+    state._calc = { hours, afterH, nightH, weekendH, vac, holWorkedH, holPaidHomeDays, autoOT, fDays, continuousH };
     save();
 }
 
@@ -435,7 +436,7 @@ function calcPay() {
     let avg = 0;
     try { avg = avgRate(); } catch(e) { avg = nval(state.avg.avg_manual); }
 
-    const C = state._calc || { hours: 0, afterH: 0, nightH: 0, weekendH: 0, vac: 0, holWorkedH: 0, holPaidHomeDays: 0, autoOT: 0, fDays: 0 };
+    const C = state._calc || { hours: 0, afterH: 0, nightH: 0, weekendH: 0, vac: 0, holWorkedH: 0, holPaidHomeDays: 0, autoOT: 0, fDays: 0, continuousH: 0 };
     const ymKey = ym(current);
     const effB = nval(state.monthRates[ymKey]) || nval(state.rates['rate_base']) || 148.50;
 
@@ -449,16 +450,17 @@ function calcPay() {
     const nightPay = r.n * C.nightH;
     const weekPay = r.v * C.weekendH;
     
-    // ČISTÝ VÝPOČET: Svátek doma = Dny * Hodiny podle režimu * průměr
     const holHomeH = C.holPaidHomeDays * ((state.mode === '7.75') ? 7.75 : 7.50);
     const holWorkedPay = (avg * 1.25) * (C.holWorkedH || 0);
     const holHomePay = avg * holHomeH;
     const holPay = holWorkedPay + holHomePay;
 
+    // VÝPOČET: Hodiny z D a N vynásobené příplatkem 4 Kč/h
+    const continuousPay = (C.continuousH || 0) * 4;
+
     const otExtraPay = (avg * 0.25) * (C.autoOT + r.nep);
     const primeP = basePay * (nval(state.bonus_pct) / 100);
     
-    // ČISTÝ VÝPOČET: Dovolená = Dny * Hodiny podle režimu * průměr
     const vacH = C.vac * ((state.mode === '7.75') ? 7.75 : 7.50);
     const vacPay = vacH * avg;
     
@@ -501,7 +503,7 @@ function calcPay() {
 
     const mealDeduct = mc * MEAL_DEDUCT;
     const lunchDeduct = lc * LUNCH_DEDUCT;
-    const gross = basePay + odpoPay + nightPay + weekPay + holPay + otExtraPay + primeP + vacPay + annB + fund + satB + hlukPay;
+    const gross = basePay + odpoPay + nightPay + weekPay + holPay + continuousPay + otExtraPay + primeP + vacPay + annB + fund + satB + hlukPay;
 
     const soc = Math.round(gross * 0.065);
     const hlth = Math.round(gross * 0.045);
@@ -512,6 +514,7 @@ function calcPay() {
         $('pay').innerHTML = [
             ['Základ', money(basePay)], ['Odpolední příplatek', money(odpoPay)], ['Noční příplatek', money(nightPay)],
             ['Víkendový příplatek', money(weekPay)], ['Ztížené prostředí (Hluk)', money(hlukPay)], ['Soboty R (+500/ks)', money(satB)],
+            ['Nepřetržitý provoz (+4 Kč/h, celkem ' + r2(C.continuousH) + 'h)', money(continuousPay)],
             ['Odpracovaný svátek (125%)', money(holWorkedPay)], ['Náhrada za svátek doma', money(holHomePay)],
             ['Přesčasy', money(otExtraPay)], ['Prémie', money(primeP)], ['Náhrada za dovolenou', money(vacPay)],
             ['Motivační bonus', money(annB)], ['Fond vedoucího', money(fund)],
