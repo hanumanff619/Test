@@ -442,7 +442,7 @@ function calcPay() {
 
     const r = {
         b: effB, o: nval(state.rates['rate_odpo']) || 10, n: nval(state.rates['rate_noc']) || 25,
-        v: nval(state.rates['rate_vikend']) || 35, nep: nval(state.rates['rate_nepretrzity'])
+        v: nval(state.rates['rate_vikend']) || 35, man_ot: nval(state.rates['rate_nepretrzity'])
     };
 
     const basePay = r.b * C.hours;
@@ -458,7 +458,10 @@ function calcPay() {
     // MATEMATIKA: 4 Kč za každou odpracovanou hodinu na D a N směnách
     const continuousPay = (C.continuousH || 0) * 4;
 
-    const otExtraPay = (avg * 0.25) * (C.autoOT + r.nep);
+    // PŘESČASY: Auto výpočet (víkendy/svátky) + to, co naťukáš ručně do políčka "Přesčas Man."
+    const totalOT = C.autoOT + r.man_ot;
+    const otExtraPay = (avg * 0.25) * totalOT;
+    
     const primeP = basePay * (nval(state.bonus_pct) / 100);
     
     const vacH = C.vac * ((state.mode === '7.75') ? 7.75 : 7.50);
@@ -514,10 +517,9 @@ function calcPay() {
         $('pay').innerHTML = [
             ['Základ', money(basePay)], ['Odpolední příplatek', money(odpoPay)], ['Noční příplatek', money(nightPay)],
             ['Víkendový příplatek', money(weekPay)], ['Ztížené prostředí (Hluk)', money(hlukPay)], ['Soboty R (+500/ks)', money(satB)],
-            // REVOLUCE: Tady kód dynamicky vygeneruje textový řádek přímo do tvého existujícího HTML!
             ['Nepřetržitý provoz (+4 Kč/h, celkem ' + r2(C.continuousH) + 'h)', money(continuousPay)],
             ['Odpracovaný svátek (125%)', money(holWorkedPay)], ['Náhrada za svátek doma', money(holHomePay)],
-            ['Přesčasy', money(otExtraPay)], ['Prémie', money(primeP)], ['Náhrada za dovolenou', money(vacPay)],
+            ['Přesčasy (' + r2(totalOT) + ' h)', money(otExtraPay)], ['Prémie', money(primeP)], ['Náhrada za dovolenou', money(vacPay)],
             ['Motivační bonus', money(annB)], ['Fond vedoucího', money(fund)],
             ['Srážka Stravenky ('+mc+' ks)', '− ' + money(mealDeduct)], ['Srážka Obědy ('+lc+' ks)', '− ' + money(lunchDeduct)]
         ].map(([k, v]) => `<div class="payline"><span>${k}</span><span><b>${v}</b></span></div>`).join('');
