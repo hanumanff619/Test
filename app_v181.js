@@ -13,12 +13,12 @@ const MAP12 = {
 };
 
 const MAP8 = { 
-    R: 'R 06:00–14:31', // OPRAVENO: Popisek pro 8h ranní sektor
+    R: 'R 06:00–14:31', 
     V: 'Dovolená' 
 };
 
 const MAP775 = { 
-    R: 'R 05:45–14:01', // OPRAVENO: Popisek pro 7.75h ranní sektor
+    R: 'R 05:45–14:01', 
     O: 'O 13:45–22:01', 
     V: 'Dovolená' 
 };
@@ -353,9 +353,6 @@ function updateStats() {
     const m = current.getMonth();
     const last = new Date(y, m + 1, 0);
     const DAILY_WORKED = 11.25;
-    const VAC12 = 11.25;
-    let shiftH = 8.0;
-    if (state.mode === '7.75') shiftH = 7.75;
 
     let dDay = 0, nDay = 0, vac = 0, hours = 0, nightH = 0, afterH = 0, weekendH = 0, rDays = 0, oDays = 0, fDays = 0, autoOT = 0;
     let holWorkedH = 0;
@@ -370,9 +367,8 @@ function updateStats() {
         const isWk = isW(dt);
 
         if (isH && !isWk && (!t || t === 'V')) {
-            let hHomeVal = (state.mode === '7.75') ? 7.75 : 8.0;
-            if (state.mode === '12') hHomeVal = 11.25;
-            holPaidHomeH += hHomeVal;
+            // ZMĚNA: Pouze pro 12h a 8h režim dává svátek doma 7.50h. Pro 7.75h zůstává původních 7.75h!
+            holPaidHomeH += (state.mode === '7.75') ? 7.75 : 7.50; 
             if (t === 'V') vac++;
             continue;
         }
@@ -440,7 +436,7 @@ function updateStats() {
             `<div class="payline"><span>Víkendové hodiny</span><span><b>${r2(weekendH)}</b> h</span></div>`
         ].join('');
     }
-    state._calc = { hours, afterH, nightH, weekendH, vac, holWorkedH, holPaidHomeH, continuousH, DAILY_WORKED, H8: shiftH, VAC12, autoOT, fDays };
+    state._calc = { hours, afterH, nightH, weekendH, vac, holWorkedH, holPaidHomeH, continuousH, autoOT, fDays };
     save();
 }
 
@@ -474,8 +470,10 @@ function calcPay() {
     const totalOT = C.autoOT + r.nep;
     const otExtraPay = (avg * 0.25) * totalOT;
     const primeP = basePay * (nval(state.bonus_pct) / 100);
-    const vH = state.mode === '12' ? 11.25 : (state.mode === '7.75' ? 7.75 : 8);
-    const vacPay = vH * avg * C.vac;
+    
+    // ZMĚNA: Pro 12h a 8h režim se dovolená násobí 7.50h, pro 7.75h se dál drží 7.75h!
+    const vacH = (state.mode === '7.75') ? 7.75 : 7.50;
+    const vacPay = vacH * avg * C.vac;
     
     const hlukPay = C.fDays * (7.75 * 6);
 
@@ -646,7 +644,10 @@ function renderCalendar() {
                 let currentH = state.customHours[dateKey];
                 if (currentH === undefined) {
                     let code = state.shifts[dateKey];
-                    if (code === 'R' || code === 'O' || code === 'F' || code === 'FO') {
+                    // ZMĚNA: Budík pro dovolenou V nabízí automaticky 7.50h v 12h a 8h, nebo 7.75h v režimu 7.75h!
+                    if (code === 'V') {
+                        currentH = (state.mode === '7.75') ? 7.75 : 7.50;
+                    } else if (code === 'R' || code === 'O' || code === 'F' || code === 'FO') {
                         currentH = (state.mode === '7.75') ? 7.75 : ((code === 'R') ? 8.0 : 7.75);
                     } else {
                         currentH = (code === 'F16' ? 16.25 : 11.25);
