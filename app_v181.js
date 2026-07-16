@@ -366,15 +366,21 @@ function updateStats() {
         const isH = isHoliday(dt);
         const isWk = isW(dt);
 
-        if (isH && !isWk && (!t || t === 'V')) {
-            // ZMĚNA: Pouze pro 12h a 8h režim dává svátek doma 7.50h. Pro 7.75h zůstává původních 7.75h!
-            holPaidHomeH += (state.mode === '7.75') ? 7.75 : 7.50; 
-            if (t === 'V') vac++;
-            continue;
+        // NAKONFIGUROVÁNO NA ZÁKLADĚ REALITY Z MZDOVKY
+        if (isH && !isWk) {
+            if (!t || t === '') {
+                holPaidHomeH += (state.mode === '7.75') ? 7.75 : 7.50; 
+                continue;
+            }
         }
 
         if (!t) continue;
-        if (t === 'V') { vac++; continue; }
+        
+        if (t === 'V') { 
+            vac++; 
+            // Dovolená přičte hodiny podle režimu přímo do fondu náhrad za dovolenou
+            continue; 
+        }
 
         let baseShiftH = DAILY_WORKED;
         if (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') {
@@ -440,6 +446,33 @@ function updateStats() {
     save();
 }
 
+function avgRate() {
+    const man = nval(state.avg.avg_manual);
+    if (man > 0) {
+        if ($('avg_info')) $('avg_info').innerHTML = `Průměr z pásky (ručně): <b>${money(man)}</b>`;
+        return man;
+    }
+    const y = current.getFullYear();
+    const m = current.getMonth();
+    let sumNet = 0, sumHours = 0;
+    for (let i = 1; i <= 3; i++) {
+        let d = new Date(y, m - i, 1);
+        let sy = d.getFullYear(), sm = d.getMonth();
+        if (state.yearSummary[sy] && state.yearSummary[sy][sm]) {
+            const h = state.yearSummary[sy][sm];
+            sumNet += (h.net || 0);
+            sumHours += (h.hours || 0);
+        }
+    }
+    if (sumNet > 0 && sumHours > 0) {
+        const calculatedAvg = sumNet / sumHours;
+        if ($('avg_info')) $('avg_info').innerHTML = `Auto průměr z historie: <b>${calculatedAvg.toFixed(2)} Kč/h</b>`;
+        return calculatedAvg;
+    }
+    if ($('avg_info')) $('avg_info').innerHTML = `Zadejte průměr z pásky!`;
+    return 0; 
+}
+
 function calcPay() {
     let avg = 0;
     try { avg = avgRate(); } catch(e) { avg = nval(state.avg.avg_manual); }
@@ -461,6 +494,7 @@ function calcPay() {
     const nightPay = r.n * C.nightH;
     const weekPay = r.v * C.weekendH;
     
+    // SVÁTKY DOMA: Přesně podle nařízení mzdovky
     const holWorkedPay = (avg * 1.25) * (C.holWorkedH || 0);
     const holHomePay = avg * (C.holPaidHomeH || 0);
     const holPay = holWorkedPay + holHomePay;
@@ -471,7 +505,7 @@ function calcPay() {
     const otExtraPay = (avg * 0.25) * totalOT;
     const primeP = basePay * (nval(state.bonus_pct) / 100);
     
-    // ZMĚNA: Pro 12h a 8h režim se dovolená násobí 7.50h, pro 7.75h se dál drží 7.75h!
+    // DOVOLENÁ: Natvrdo oddělena od svátků a počítána 7.50h pro 12 a 8, nebo 7.75h pro 7.75!
     const vacH = (state.mode === '7.75') ? 7.75 : 7.50;
     const vacPay = vacH * avg * C.vac;
     
@@ -644,7 +678,6 @@ function renderCalendar() {
                 let currentH = state.customHours[dateKey];
                 if (currentH === undefined) {
                     let code = state.shifts[dateKey];
-                    // ZMĚNA: Budík pro dovolenou V nabízí automaticky 7.50h v 12h a 8h, nebo 7.75h v režimu 7.75h!
                     if (code === 'V') {
                         currentH = (state.mode === '7.75') ? 7.75 : 7.50;
                     } else if (code === 'R' || code === 'O' || code === 'F' || code === 'FO') {
