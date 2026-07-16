@@ -336,7 +336,7 @@ function updateStats() {
     let dDay = 0, nDay = 0, vac = 0, hours = 0, nightH = 0, afterH = 0, weekendH = 0, rDays = 0, oDays = 0, fDays = 0, autoOT = 0;
     let holWorkedH = 0;
     let holPaidHomeDays = 0;
-    let continuousH = 0; // Proměnná pro ukládání hodin nepřetržitého provozu
+    let continuousH = 0; 
 
     for (let i = 1; i <= last.getDate(); i++) {
         const dt = new Date(y, m, i);
@@ -383,12 +383,12 @@ function updateStats() {
             }
         } else if (t === 'D') {
             dDay++; hours += curH; 
-            continuousH += curH; // Přičtení hodin denní směny
+            continuousH += curH; 
             if (isWk) weekendH += curH; 
             if (isH) holWorkedH += curH;
         } else if (t === 'N') {
             nDay++; hours += curH; 
-            continuousH += curH; // Přičtení hodin noční směny
+            continuousH += curH; 
             afterH += Math.min(4, Math.max(0, curH - 7.25)); 
             nightH += Math.min(7.25, curH);
             if (isWk) weekendH += curH; 
@@ -455,7 +455,7 @@ function calcPay() {
     const holHomePay = avg * holHomeH;
     const holPay = holWorkedPay + holHomePay;
 
-    // VÝPOČET: Hodiny z D a N vynásobené příplatkem 4 Kč/h
+    // MATEMATIKA: 4 Kč za každou odpracovanou hodinu na D a N směnách
     const continuousPay = (C.continuousH || 0) * 4;
 
     const otExtraPay = (avg * 0.25) * (C.autoOT + r.nep);
@@ -514,6 +514,7 @@ function calcPay() {
         $('pay').innerHTML = [
             ['Základ', money(basePay)], ['Odpolední příplatek', money(odpoPay)], ['Noční příplatek', money(nightPay)],
             ['Víkendový příplatek', money(weekPay)], ['Ztížené prostředí (Hluk)', money(hlukPay)], ['Soboty R (+500/ks)', money(satB)],
+            // REVOLUCE: Tady kód dynamicky vygeneruje textový řádek přímo do tvého existujícího HTML!
             ['Nepřetržitý provoz (+4 Kč/h, celkem ' + r2(C.continuousH) + 'h)', money(continuousPay)],
             ['Odpracovaný svátek (125%)', money(holWorkedPay)], ['Náhrada za svátek doma', money(holHomePay)],
             ['Přesčasy', money(otExtraPay)], ['Prémie', money(primeP)], ['Náhrada za dovolenou', money(vacPay)],
