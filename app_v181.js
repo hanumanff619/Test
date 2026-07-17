@@ -353,7 +353,6 @@ function updateStats() {
         if (!t) continue;
         if (t === 'V') { vac++; continue; }
 
-        // OPRAVA: Pro F16 natvrdo dosazujeme 15.50h, u ostatních jedeme standard
         let baseShiftH = DAILY_WORKED;
         if (t === 'F16') {
             baseShiftH = 15.50;
@@ -459,10 +458,8 @@ function calcPay() {
     const holPay = holWorkedPay + holHomePay;
 
     const continuousPay = (C.continuousH || 0) * 4;
-
     const totalOT = C.autoOT + r.man_ot;
     const otExtraPay = (avg * 0.25) * totalOT;
-    
     const primeP = basePay * (nval(state.bonus_pct) / 100);
     
     const vacH = C.vac * ((state.mode === '7.75') ? 7.75 : 7.50);
@@ -580,10 +577,12 @@ function renderCalendar() {
                 let currentH = state.customHours[dateKey];
                 if (currentH === undefined) {
                     let code = state.shifts[dateKey];
-                    if (code === 'V') currentH = (state.mode === '7.75') ? 7.75 : 7.50;
-                    else if (code === 'R' || code === 'O' || code === 'F' || code === 'FO' || code === 'F16') {
+                    // OPRAVA: Tady to pro F16 natvrdo vytáhne a ukáže 15.50 h i ve vyskakovacím prompt okně
+                    if (code === 'F16') currentH = 15.50;
+                    else if (code === 'V') currentH = (state.mode === '7.75') ? 7.75 : 7.50;
+                    else if (code === 'R' || code === 'O' || code === 'F' || code === 'FO') {
                         currentH = (state.mode === '7.75') ? 7.75 : ((code === 'R') ? 8.0 : 7.75);
-                    } else currentH = (code === 'F16' ? 15.50 : 11.25);
+                    } else currentH = 11.25;
                 }
                 let val = prompt(`Upravit odpracované hodiny pro den ${dateKey} (aktuálně: ${currentH} h):`, currentH);
                 if (val !== null) {
