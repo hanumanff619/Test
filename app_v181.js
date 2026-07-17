@@ -577,12 +577,17 @@ function renderCalendar() {
                 let currentH = state.customHours[dateKey];
                 if (currentH === undefined) {
                     let code = state.shifts[dateKey];
-                    // OPRAVA: Tady to pro F16 natvrdo vytáhne a ukáže 15.50 h i ve vyskakovacím prompt okně
-                    if (code === 'F16') currentH = 15.50;
-                    else if (code === 'V') currentH = (state.mode === '7.75') ? 7.75 : 7.50;
-                    else if (code === 'R' || code === 'O' || code === 'F' || code === 'FO') {
+                    
+                    // NEPRŮSTŘELNÉ ŘEŠENÍ: F16 musí být hned na prvním místě!
+                    if (code === 'F16') {
+                        currentH = 15.50;
+                    } else if (code === 'V') {
+                        currentH = (state.mode === '7.75') ? 7.75 : 7.50;
+                    } else if (code === 'R' || code === 'O' || code === 'F' || code === 'FO') {
                         currentH = (state.mode === '7.75') ? 7.75 : ((code === 'R') ? 8.0 : 7.75);
-                    } else currentH = 11.25;
+                    } else {
+                        currentH = 11.25;
+                    }
                 }
                 let val = prompt(`Upravit odpracované hodiny pro den ${dateKey} (aktuálně: ${currentH} h):`, currentH);
                 if (val !== null) {
