@@ -36,6 +36,8 @@ if (state.lunches_775_ok == null) state.lunches_775_ok = true;
 if (!state.monthFunds) state.monthFunds = {};
 if (!state.monthRates) state.monthRates = {};
 if (!state.customHours) state.customHours = {};
+if (!state.monthTransfersIn) state.monthTransfersIn = {};
+if (!state.monthTransfersOut) state.monthTransfersOut = {};
 
 if (!state.avg) {
     state.avg = {
@@ -268,6 +270,27 @@ function bindInputsOnce() {
         };
     }
 
+    // PŘEVODY HODIN VSTUPY
+    const tin = $('transfer_in');
+    if (tin) {
+        tin.oninput = e => {
+            const key = ym(current);
+            state.monthTransfersIn[key] = e.target.value === '' ? null : nval(e.target.value);
+            save();
+            calcPay();
+        };
+    }
+
+    const tout = $('transfer_out');
+    if (tout) {
+        tout.oninput = e => {
+            const key = ym(current);
+            state.monthTransfersOut[key] = e.target.value === '' ? null : nval(e.target.value);
+            save();
+            calcPay();
+        };
+    }
+
     const fields = [
         ['avg_net1', 'net1'], ['avg_net2', 'net2'], ['avg_net3', 'net3'],
         ['avg_h1', 'h1'], ['avg_h2', 'h2'], ['avg_h3', 'h3'],
@@ -325,6 +348,8 @@ function refreshMonthScopedInputs() {
     if ($('fund_bonus_month')) $('fund_bonus_month').value = state.monthFunds[key] ?? '';
     if ($('rate_base_month')) $('rate_base_month').value = state.monthRates[key] ?? '';
     if ($('lunch_check')) $('lunch_check').checked = (state.lunches_775_ok === true);
+    if ($('transfer_in')) $('transfer_in').value = state.monthTransfersIn[key] ?? '';
+    if ($('transfer_out')) $('transfer_out').value = state.monthTransfersOut[key] ?? '';
 }
 
 function updateStats() {
@@ -447,7 +472,13 @@ function calcPay() {
         v: nval(state.rates['rate_vikend']) || 35, man_ot: nval(state.rates['rate_nepretrzity'])
     };
 
-    const basePay = r.b * C.hours;
+    // ZAPOČÍTÁNÍ PŘEVODŮ HODIN (JEN PRO ZÁKLADNÍ MZDU)
+    const tIn = nval(state.monthTransfersIn[ymKey]);
+    const tOut = nval(state.monthTransfersOut[ymKey]);
+    const finalBaseHours = Math.max(0, C.hours + tIn - tOut);
+
+    // Příplatky zůstávají spočítané z C.hours, C.afterH, C.nightH atd.!
+    const basePay = r.b * finalBaseHours;
     const odpoPay = r.o * C.afterH;
     const nightPay = r.n * C.nightH;
     const weekPay = r.v * C.weekendH;
@@ -460,7 +491,8 @@ function calcPay() {
     const continuousPay = (C.continuousH || 0) * 4;
     const totalOT = C.autoOT + r.man_ot;
     const otExtraPay = (avg * 0.25) * totalOT;
-    const primeP = basePay * (nval(state.bonus_pct) / 100);
+    
+    const primeP = (r.b * C.hours) * (nval(state.bonus_pct) / 100); // Prémie se počítá z reálně odpracovaného základu
     
     const vacH = C.vac * ((state.mode === '7.75') ? 7.75 : 7.50);
     const vacPay = vacH * avg;
@@ -514,8 +546,12 @@ function calcPay() {
     const net = gross - soc - hlth - tax - (mealDeduct + lunchDeduct);
 
     if ($('pay')) {
+        let transferText = '';
+        if (tIn > 0 || tOut > 0) {
+            transferText = ` (úprava: +${tIn}h / -${tOut}h = ${r2(finalBaseHours)}h)`;
+        }
         $('pay').innerHTML = [
-            ['Základ', money(basePay)], ['Odpolední příplatek', money(odpoPay)], ['Noční příplatek', money(nightPay)],
+            ['Základ' + transferText, money(basePay)], ['Odpolední příplatek', money(odpoPay)], ['Noční příplatek', money(nightPay)],
             ['Víkendový příplatek', money(weekPay)], ['Ztížené prostředí (Hluk)', money(hlukPay)], ['Soboty R (+500/ks)', money(satB)],
             ['Nepřetržitý provoz (+4 Kč/h, celkem ' + r2(C.continuousH) + 'h)', money(continuousPay)],
             ['Odpracovaný svátek (125%)', money(holWorkedPay)], ['Náhrada za svátek doma', money(holHomePay)],
@@ -531,7 +567,7 @@ function calcPay() {
     if ($('cafInfo')) $('cafInfo').innerHTML = `🎁 Cafeterie: <b>${state.cafeteria_ok ? '1 000,00 Kč' : '0,00 Kč'}</b>`;
 
     state.yearSummary[current.getFullYear()] = state.yearSummary[current.getFullYear()] || {};
-    state.yearSummary[current.getFullYear()][current.getMonth()] = { gross, net, hours: C.hours, mealCount: mc, mealValue: mc * 110, ts: Date.now() };
+    state.yearSummary[current.getFullYear()][current.getMonth()] = { gross, net, hours: finalBaseHours, mealCount: mc, mealValue: mc * 110, ts: Date.now() };
     save();
     try { renderYearSummary(); } catch(e) {}
 }
@@ -577,17 +613,11 @@ function renderCalendar() {
                 let currentH = state.customHours[dateKey];
                 if (currentH === undefined) {
                     let code = state.shifts[dateKey];
-                    
-                    // NEPRŮSTŘELNÉ ŘEŠENÍ: F16 musí být hned na prvním místě!
-                    if (code === 'F16') {
-                        currentH = 15.50;
-                    } else if (code === 'V') {
-                        currentH = (state.mode === '7.75') ? 7.75 : 7.50;
-                    } else if (code === 'R' || code === 'O' || code === 'F' || code === 'FO') {
+                    if (code === 'F16') currentH = 15.50;
+                    else if (code === 'V') currentH = (state.mode === '7.75') ? 7.75 : 7.50;
+                    else if (code === 'R' || code === 'O' || code === 'F' || code === 'FO') {
                         currentH = (state.mode === '7.75') ? 7.75 : ((code === 'R') ? 8.0 : 7.75);
-                    } else {
-                        currentH = 11.25;
-                    }
+                    } else currentH = 11.25;
                 }
                 let val = prompt(`Upravit odpracované hodiny pro den ${dateKey} (aktuálně: ${currentH} h):`, currentH);
                 if (val !== null) {
