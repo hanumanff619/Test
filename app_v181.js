@@ -1,5 +1,5 @@
 // ============================================================================
-// Směnářek 1.8.1 – KOMPLETNÍ FULL VERZE (Hanuman & Family Edition - Páska Fix)
+// Směnářek 1.8.1 – KOMPLETNÍ FULL VERZE (Hanuman & Family Edition - Premium Fix)
 // ============================================================================
 
 const MEAL_DEDUCT = 40;
@@ -90,7 +90,6 @@ function save() {
     } catch(e) {}
 }
 
-// Noční pro Ranní R – pouze v sobotu 1h, ve všední den 0h
 function rShiftNightH(dt) {
     if (!dt) return 0;
     return isSat(dt) ? 1.0 : 0;
@@ -441,8 +440,7 @@ function updateStats() {
             nDay++; hours += curH; 
             continuousH += curH; 
             afterH += 4.00; 
-            // OPRAVA: Noční příplatek pro Noční směnu (N) se počítá celých 7.50 h!
-            nightH += 7.50;
+            nightH += 7.25;
             if (isWk) weekendH += curH; 
             if (isH) {
                 if (isWk) holWorkedWeekendH += curH; else holWorkedWeekdayH += curH;
@@ -521,7 +519,8 @@ function calcPay() {
     const totalOT = C.autoOT + r.man_ot;
     const otExtraPay = (avg * 0.25) * totalOT;
     
-    const primeP = (r.b * C.hours) * (nval(state.bonus_pct) / 100);
+    // OPRAVA: Prémie 10 % se počítá ze základní mzdy po úpravě o převody hodin!
+    const primeP = basePay * (nval(state.bonus_pct) / 100);
     
     const vacH = C.vac * ((state.mode === '7.75') ? 7.75 : 7.50);
     const vacPay = vacH * avg;
