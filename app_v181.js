@@ -1,5 +1,5 @@
 // ============================================================================
-// Směnářek 1.8.1 – KOMPLETNÍ FULL VERZE (Hanuman & Family Edition - Overtime Fix)
+// Směnářek 1.8.1 – KOMPLETNÍ FULL VERZE (Hanuman & Family Edition - Holiday Weekend OT Fix)
 // ============================================================================
 
 const MEAL_DEDUCT = 40;
@@ -386,7 +386,6 @@ function updateStats() {
 
         if (!t) continue;
         
-        // Zpracování absencí
         if (t === 'V') { 
             vac += 1; 
             vacHoursTotal += (state.mode === '7.75') ? 7.75 : 7.50; 
@@ -417,21 +416,21 @@ function updateStats() {
 
         let curH = (state.customHours && state.customHours[key] !== undefined) ? nval(state.customHours[key]) : baseShiftH;
 
-        // NOVÁ LOGIKA PŘESČASŮ (autoOT):
-        // 1. Svátek ve všední den = přesčas
+        // VÝPOČET PŘESČASŮ (autoOT):
+        // 1. Svátek pouze VE VŠEDNÍ DEN generuje přesčas
         if (isH && !isWk) {
             autoOT += curH;
         }
         // 2. Sobota R = 7.50h přesčas
-        if (t === 'R' && isSat(dt)) {
+        else if (t === 'R' && isSat(dt)) {
             autoOT += 7.50;
         }
-        // 3. Víkend F / FO = 7.50h přesčas
-        if ((t === 'F' || t === 'FO') && isWk) {
+        // 3. Víkend F / FO = 7.50h přesčas (pokud to není svátek o víkendu)
+        else if ((t === 'F' || t === 'FO') && isWk && !isH) {
             autoOT += 7.50;
         }
-        // 4. Víkend F16 = 15.50h přesčas
-        if (t === 'F16' && isWk) {
+        // 4. Víkend F16 = 15.50h přesčas (pokud to není svátek o víkendu)
+        else if (t === 'F16' && isWk && !isH) {
             autoOT += 15.50;
         }
 
