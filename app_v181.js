@@ -1,5 +1,5 @@
 // ============================================================================
-// Směnářek 1.8.1 – KOMPLETNÍ FULL VERZE (Hanuman & Family Edition - Strict Holiday OT Fix)
+// Směnářek 1.8.1 – KOMPLETNÍ FULL VERZE (Hanuman & Family Edition - Tax Fix)
 // ============================================================================
 
 const MEAL_DEDUCT = 40;
@@ -416,8 +416,6 @@ function updateStats() {
 
         let curH = (state.customHours && state.customHours[key] !== undefined) ? nval(state.customHours[key]) : baseShiftH;
 
-        // BEZPEČNÁ LOGIKA PŘESČASŮ (autoOT):
-        // Jakmile je den svátkem (isH), přesčas z titulu víkendu NEVZNIKÁ.
         if (!isH) {
             if (t === 'R' && isSat(dt)) {
                 autoOT += 7.50;
@@ -607,11 +605,24 @@ function calcPay() {
 
     const mealDeduct = mc * MEAL_DEDUCT;
     const lunchDeduct = lc * LUNCH_DEDUCT;
+    
+    // HRUBÁ MZDA
     const gross = basePay + odpoPay + nightPay + weekPay + holPay + continuousPay + otExtraPay + primeP + vacPay + docPay + annB + fund + satB + hlukPay;
 
-    const soc = Math.round(gross * 0.065);
+    // OPRAVA DAŇOVÉHO VÝPOČTU PODLE ČESKÝCH ZÁKONŮ:
+    // 1. Sociální pojištění = 7,1 % (včetně nemocenského)
+    const soc = Math.round(gross * 0.071);
+    
+    // 2. Zdravotní pojištění = 4,5 %
     const hlth = Math.round(gross * 0.045);
-    const tax = Math.max(0, (Math.ceil(gross) - soc - hlth) * 0.15 - 2570);
+    
+    // 3. Základ daně = Hrubá mzda zaokrouhlená na stovky nahoru
+    const taxBase = Math.ceil(gross / 100) * 100;
+    
+    // 4. Záloha na daň = 15 % ze základu daně mínus sleva na poplatníka (2 570 Kč)
+    const tax = Math.max(0, Math.round(taxBase * 0.15) - 2570);
+    
+    // 5. Čistá mzda po srážkách na stravenky a obědy
     const net = gross - soc - hlth - tax - (mealDeduct + lunchDeduct);
 
     if ($('pay')) {
