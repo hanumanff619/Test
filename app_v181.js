@@ -400,11 +400,11 @@ function updateStats() {
                 if (t === 'F16') {
                     fDays += 2;
                     hlukHoursTotal += 15.50;
-                    afterH += 7.25; // Odpolední po odečtení pauzy = 7.25h
+                    afterH += 7.25; 
                 } else if (t === 'FO') {
                     fDays += 1;
                     hlukHoursTotal += 7.75;
-                    afterH += 7.25; // Odpolední po odečtení pauzy = 7.25h
+                    afterH += 7.25; 
                 } else { // F
                     fDays += 1;
                     hlukHoursTotal += 7.75;
@@ -418,7 +418,7 @@ function updateStats() {
             } else {
                 if (t === 'O') {
                     oDays++;
-                    afterH += 7.25; // Odpolední O = 7.25h
+                    afterH += 7.25; 
                 } else {
                     rDays++;
                 }
@@ -432,7 +432,7 @@ function updateStats() {
         } else if (t === 'D') {
             dDay++; hours += curH; 
             continuousH += curH; 
-            afterH += 4.00; // Denní D = 4.00h odpolední
+            afterH += 4.00; 
             if (isWk) weekendH += curH; 
             if (isH) {
                 if (isWk) holWorkedWeekendH += curH; else holWorkedWeekdayH += curH;
@@ -440,8 +440,9 @@ function updateStats() {
         } else if (t === 'N') {
             nDay++; hours += curH; 
             continuousH += curH; 
-            afterH += 4.00; // Noční N = 4.00h odpolední
-            nightH += Math.min(7.25, curH);
+            afterH += 4.00; 
+            // OPRAVA: Noční příplatek pro Noční směnu (N) se počítá celých 7.50 h!
+            nightH += 7.50;
             if (isWk) weekendH += curH; 
             if (isH) {
                 if (isWk) holWorkedWeekendH += curH; else holWorkedWeekdayH += curH;
