@@ -1,5 +1,5 @@
 // ============================================================================
-// Směnářek 1.8.1 – KOMPLETNÍ FULL VERZE (Hanuman & Family Edition)
+// Směnářek 1.8.1 – KOMPLETNÍ FULL VERZE (Hanuman & Family Edition - Páska Fix)
 // ============================================================================
 
 const MEAL_DEDUCT = 40;
@@ -90,9 +90,10 @@ function save() {
     } catch(e) {}
 }
 
+// Noční pro Ranní R – pouze v sobotu 1h, ve všední den 0h
 function rShiftNightH(dt) {
     if (!dt) return 0;
-    return isW(dt) ? 1 : (35 / 60);
+    return isSat(dt) ? 1.0 : 0;
 }
 
 async function setTodayNameday() {
@@ -270,7 +271,6 @@ function bindInputsOnce() {
         };
     }
 
-    // PŘEVODY HODIN VSTUPY
     const tin = $('transfer_in');
     if (tin) {
         tin.oninput = e => {
@@ -359,9 +359,11 @@ function updateStats() {
     const DAILY_WORKED = 11.25;
 
     let dDay = 0, nDay = 0, vac = 0, hours = 0, nightH = 0, afterH = 0, weekendH = 0, rDays = 0, oDays = 0, fDays = 0, autoOT = 0;
-    let holWorkedH = 0;
+    let holWorkedWeekdayH = 0;
+    let holWorkedWeekendH = 0;
     let holPaidHomeDays = 0;
     let continuousH = 0; 
+    let hlukHoursTotal = 0; 
 
     for (let i = 1; i <= last.getDate(); i++) {
         const dt = new Date(y, m, i);
@@ -395,38 +397,65 @@ function updateStats() {
 
         if (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') {
             if (t === 'F' || t === 'FO' || t === 'F16') {
-                fDays += (t === 'F16' ? 2 : 1); 
+                if (t === 'F16') {
+                    fDays += 2;
+                    hlukHoursTotal += 15.50;
+                    afterH += 7.25; // Odpolední po odečtení pauzy = 7.25h
+                } else if (t === 'FO') {
+                    fDays += 1;
+                    hlukHoursTotal += 7.75;
+                    afterH += 7.25; // Odpolední po odečtení pauzy = 7.25h
+                } else { // F
+                    fDays += 1;
+                    hlukHoursTotal += 7.75;
+                }
                 hours += curH; 
-                if (t === 'FO' || t === 'F16') afterH += (t === 'F16' ? 15.50 : Math.min(curH, 7.75));
-                if (isH) holWorkedH += curH;
+                
+                if (isH) {
+                    if (isWk) holWorkedWeekendH += curH; else holWorkedWeekdayH += curH;
+                }
                 if (isWk) weekendH += curH;
             } else {
-                if (t === 'O') oDays++; else rDays++;
+                if (t === 'O') {
+                    oDays++;
+                    afterH += 7.25; // Odpolední O = 7.25h
+                } else {
+                    rDays++;
+                }
                 hours += curH;
-                if (t === 'O') afterH += curH;
                 nightH += rShiftNightH(dt);
                 if (isWk) weekendH += curH;
-                if (isH) holWorkedH += curH;
+                if (isH) {
+                    if (isWk) holWorkedWeekendH += curH; else holWorkedWeekdayH += curH;
+                }
             }
         } else if (t === 'D') {
             dDay++; hours += curH; 
             continuousH += curH; 
+            afterH += 4.00; // Denní D = 4.00h odpolední
             if (isWk) weekendH += curH; 
-            if (isH) holWorkedH += curH;
+            if (isH) {
+                if (isWk) holWorkedWeekendH += curH; else holWorkedWeekdayH += curH;
+            }
         } else if (t === 'N') {
             nDay++; hours += curH; 
             continuousH += curH; 
-            afterH += Math.min(4, Math.max(0, curH - 7.25)); 
+            afterH += 4.00; // Noční N = 4.00h odpolední
             nightH += Math.min(7.25, curH);
             if (isWk) weekendH += curH; 
-            if (isH) holWorkedH += curH;
+            if (isH) {
+                if (isWk) holWorkedWeekendH += curH; else holWorkedWeekdayH += curH;
+            }
             const nextDay = new Date(y, m, i + 1);
-            if (isHoliday(nextDay)) holWorkedH += Math.min(6, curH);
+            if (isHoliday(nextDay)) {
+                if (isW(nextDay)) holWorkedWeekendH += Math.min(6, curH);
+                else holWorkedWeekdayH += Math.min(6, curH);
+            }
         }
     }
 
     if ($('stats')) {
-        $('stats').innerHTML = `R:${rDays} O:${oDays} F:${fDays} D:${dDay} N:${nDay} V:${vac}<br>Hodiny: <b>${r2(hours)}</b> | Svátek v práci: <b>${r2(holWorkedH)}h</b>`;
+        $('stats').innerHTML = `R:${rDays} O:${oDays} F:${fDays} D:${dDay} N:${nDay} V:${vac}<br>Hodiny: <b>${r2(hours)}</b> | Svátek všední: <b>${r2(holWorkedWeekdayH)}h</b> | Svátek víkend: <b>${r2(holWorkedWeekendH)}h</b>`;
     }
 
     if ($('substats')) {
@@ -437,7 +466,7 @@ function updateStats() {
             `<div class="payline"><span>Víkendové hodiny</span><span><b>${r2(weekendH)}</b> h</span></div>`
         ].join('');
     }
-    state._calc = { hours, afterH, nightH, weekendH, vac, holWorkedH, holPaidHomeDays, autoOT, fDays, continuousH };
+    state._calc = { hours, afterH, nightH, weekendH, vac, holWorkedWeekdayH, holWorkedWeekendH, holPaidHomeDays, autoOT, fDays, continuousH, hlukHoursTotal };
     save();
 }
 
@@ -463,7 +492,7 @@ function calcPay() {
     let avg = 0;
     try { avg = avgRate(); } catch(e) { avg = nval(state.avg.avg_manual); }
 
-    const C = state._calc || { hours: 0, afterH: 0, nightH: 0, weekendH: 0, vac: 0, holWorkedH: 0, holPaidHomeDays: 0, autoOT: 0, fDays: 0, continuousH: 0 };
+    const C = state._calc || { hours: 0, afterH: 0, nightH: 0, weekendH: 0, vac: 0, holWorkedWeekdayH: 0, holWorkedWeekendH: 0, holPaidHomeDays: 0, autoOT: 0, fDays: 0, continuousH: 0, hlukHoursTotal: 0 };
     const ymKey = ym(current);
     const effB = nval(state.monthRates[ymKey]) || nval(state.rates['rate_base']) || 148.50;
 
@@ -472,33 +501,40 @@ function calcPay() {
         v: nval(state.rates['rate_vikend']) || 35, man_ot: nval(state.rates['rate_nepretrzity'])
     };
 
-    // ZAPOČÍTÁNÍ PŘEVODŮ HODIN (JEN PRO ZÁKLADNÍ MZDU)
     const tIn = nval(state.monthTransfersIn[ymKey]);
     const tOut = nval(state.monthTransfersOut[ymKey]);
     const finalBaseHours = Math.max(0, C.hours + tIn - tOut);
 
-    // Příplatky zůstávají spočítané z C.hours, C.afterH, C.nightH atd.!
     const basePay = r.b * finalBaseHours;
     const odpoPay = r.o * C.afterH;
     const nightPay = r.n * C.nightH;
     const weekPay = r.v * C.weekendH;
     
     const holHomeH = C.holPaidHomeDays * ((state.mode === '7.75') ? 7.75 : 7.50);
-    const holWorkedPay = (avg * 1.25) * (C.holWorkedH || 0);
+    const holWorkedWeekdayPay = (avg * 1.25) * (C.holWorkedWeekdayH || 0);
+    const holWorkedWeekendPay = (avg * 1.00) * (C.holWorkedWeekendH || 0);
     const holHomePay = avg * holHomeH;
-    const holPay = holWorkedPay + holHomePay;
+    const holPay = holWorkedWeekdayPay + holWorkedWeekendPay + holHomePay;
 
     const continuousPay = (C.continuousH || 0) * 4;
     const totalOT = C.autoOT + r.man_ot;
     const otExtraPay = (avg * 0.25) * totalOT;
     
-    const primeP = (r.b * C.hours) * (nval(state.bonus_pct) / 100); // Prémie se počítá z reálně odpracovaného základu
+    const primeP = (r.b * C.hours) * (nval(state.bonus_pct) / 100);
     
     const vacH = C.vac * ((state.mode === '7.75') ? 7.75 : 7.50);
     const vacPay = vacH * avg;
     
-    const hlukPay = C.fDays * (7.75 * 6);
-    let annB = (current.getMonth() === 5 || current.getMonth() === 10) ? 8000 : nval(state.annual_bonus);
+    const hlukPay = C.hlukHoursTotal * 6;
+
+    const currentMonth = current.getMonth();
+    let annB = 0;
+    if (currentMonth === 5 || currentMonth === 10) {
+        annB = 7000;
+    } else {
+        annB = nval(state.annual_bonus);
+    }
+
     const fund = nval(state.monthFunds[ymKey]);
 
     let mc = 0, lc = 0, satB = 0;
@@ -552,9 +588,11 @@ function calcPay() {
         }
         $('pay').innerHTML = [
             ['Základ' + transferText, money(basePay)], ['Odpolední příplatek', money(odpoPay)], ['Noční příplatek', money(nightPay)],
-            ['Víkendový příplatek', money(weekPay)], ['Ztížené prostředí (Hluk)', money(hlukPay)], ['Soboty R (+500/ks)', money(satB)],
+            ['Víkendový příplatek', money(weekPay)], ['Ztížené prostředí (Hluk ' + r2(C.hlukHoursTotal) + 'h)', money(hlukPay)], ['Soboty R (+500/ks)', money(satB)],
             ['Nepřetržitý provoz (+4 Kč/h, celkem ' + r2(C.continuousH) + 'h)', money(continuousPay)],
-            ['Odpracovaný svátek (125%)', money(holWorkedPay)], ['Náhrada za svátek doma', money(holHomePay)],
+            ['Odpracovaný svátek všední (125%)', money(holWorkedWeekdayPay)],
+            ['Odpracovaný svátek víkend (100%)', money(holWorkedWeekendPay)],
+            ['Náhrada za svátek doma', money(holHomePay)],
             ['Přesčasy (' + r2(totalOT) + ' h)', money(otExtraPay)], ['Prémie', money(primeP)], ['Náhrada za dovolenou', money(vacPay)],
             ['Motivační bonus', money(annB)], ['Fond vedoucího', money(fund)],
             ['Srážka Stravenky ('+mc+' ks)', '− ' + money(mealDeduct)], ['Srážka Obědy ('+lc+' ks)', '− ' + money(lunchDeduct)]
