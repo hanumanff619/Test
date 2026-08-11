@@ -1,5 +1,5 @@
 // ============================================================================
-// Směnářek 1.8.1 – KOMPLETNÍ FULL VERZE (Hanuman & Family Edition - Holiday Weekend OT Fix)
+// Směnářek 1.8.1 – KOMPLETNÍ FULL VERZE (Hanuman & Family Edition - Strict Holiday OT Fix)
 // ============================================================================
 
 const MEAL_DEDUCT = 40;
@@ -416,22 +416,16 @@ function updateStats() {
 
         let curH = (state.customHours && state.customHours[key] !== undefined) ? nval(state.customHours[key]) : baseShiftH;
 
-        // VÝPOČET PŘESČASŮ (autoOT):
-        // 1. Svátek pouze VE VŠEDNÍ DEN generuje přesčas
-        if (isH && !isWk) {
-            autoOT += curH;
-        }
-        // 2. Sobota R = 7.50h přesčas
-        else if (t === 'R' && isSat(dt)) {
-            autoOT += 7.50;
-        }
-        // 3. Víkend F / FO = 7.50h přesčas (pokud to není svátek o víkendu)
-        else if ((t === 'F' || t === 'FO') && isWk && !isH) {
-            autoOT += 7.50;
-        }
-        // 4. Víkend F16 = 15.50h přesčas (pokud to není svátek o víkendu)
-        else if (t === 'F16' && isWk && !isH) {
-            autoOT += 15.50;
+        // BEZPEČNÁ LOGIKA PŘESČASŮ (autoOT):
+        // Jakmile je den svátkem (isH), přesčas z titulu víkendu NEVZNIKÁ.
+        if (!isH) {
+            if (t === 'R' && isSat(dt)) {
+                autoOT += 7.50;
+            } else if ((t === 'F' || t === 'FO') && isWk) {
+                autoOT += 7.50;
+            } else if (t === 'F16' && isWk) {
+                autoOT += 15.50;
+            }
         }
 
         if (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') {
