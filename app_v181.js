@@ -1,5 +1,5 @@
 // ============================================================================
-// Směnářek 1.8.1 – KOMPLETNÍ FULL VERZE (Hanuman & Family Edition + Separate Doc/Vac Fix)
+// Směnářek 1.8.1 – KOMPLETNÍ FULL VERZE (Hanuman & Family Edition + Separated Doc/Vac Fix)
 // ============================================================================
 
 const MEAL_DEDUCT = 40;
@@ -369,8 +369,8 @@ function updateStats() {
     let holPaidHomeDays = 0;
     let continuousH = 0; 
     let hlukHoursTotal = 0; 
-    let vacHoursTotal = 0; // Samostatné hodiny pro Dovolenou
-    let docHoursTotal = 0; // Samostatné hodiny pro Lékaře
+    let vacHoursTotal = 0; 
+    let docHoursTotal = 0; 
 
     for (let i = 1; i <= last.getDate(); i++) {
         const dt = new Date(y, m, i);
@@ -386,7 +386,6 @@ function updateStats() {
 
         if (!t) continue;
         
-        // Oddělené počítání pro V, L/V, 1/2
         if (t === 'V') { 
             vac += 1; 
             vacHoursTotal += (state.mode === '7.75') ? 7.75 : 7.50; 
@@ -394,13 +393,13 @@ function updateStats() {
         }
         if (t === 'L/V') { 
             vac += 0.5; 
-            vacHoursTotal += 3.75; // 3.75h Dovolená
-            docHoursTotal += 3.75; // 3.75h Lékař
+            vacHoursTotal += 3.75; 
+            docHoursTotal += 3.75; 
             continue; 
         }
         if (t === '1/2') { 
             vac += 0.5; 
-            vacHoursTotal += 3.75; // 3.75h Dovolená
+            vacHoursTotal += 3.75; 
             continue; 
         }
 
@@ -429,7 +428,7 @@ function updateStats() {
                     fDays += 1;
                     hlukHoursTotal += 7.75;
                     afterH += 7.25; 
-                } else { // F
+                } else { 
                     fDays += 1;
                     hlukHoursTotal += 7.75;
                 }
@@ -546,7 +545,6 @@ function calcPay() {
     
     const primeP = basePay * (nval(state.bonus_pct) / 100);
     
-    // Samostatný výpočet pro Dovolenou a Lékaře
     const vacPay = (C.vacHoursTotal || 0) * avg;
     const docPay = (C.docHoursTotal || 0) * avg;
     
@@ -611,19 +609,38 @@ function calcPay() {
         if (tIn > 0 || tOut > 0) {
             transferText = ` (úprava: +${tIn}h / -${tOut}h = ${r2(finalBaseHours)}h)`;
         }
-        $('pay').innerHTML = [
-            ['Základ' + transferText, money(basePay)], ['Odpolední příplatek', money(odpoPay)], ['Noční příplatek', money(nightPay)],
-            ['Víkendový příplatek', money(weekPay)], ['Ztížené prostředí (Hluk ' + r2(C.hlukHoursTotal) + 'h)', money(hlukPay)], ['Soboty R (+500/ks)', money(satB)],
+
+        // Dynamické sestavení řádků výplaty (Dovolená a Lékař se zobrazí jen když mají > 0 h)
+        let payLines = [
+            ['Základ' + transferText, money(basePay)], 
+            ['Odpolední příplatek', money(odpoPay)], 
+            ['Noční příplatek', money(nightPay)],
+            ['Víkendový příplatek', money(weekPay)], 
+            ['Ztížené prostředí (Hluk ' + r2(C.hlukHoursTotal) + 'h)', money(hlukPay)], 
+            ['Soboty R (+500/ks)', money(satB)],
             ['Nepřetržitý provoz (+4 Kč/h, celkem ' + r2(C.continuousH) + 'h)', money(continuousPay)],
             ['Odpracovaný svátek všední (125%)', money(holWorkedWeekdayPay)],
             ['Odpracovaný svátek víkend (100%)', money(holWorkedWeekendPay)],
             ['Náhrada za svátek doma', money(holHomePay)],
-            ['Přesčasy (' + r2(totalOT) + ' h)', money(otExtraPay)], ['Prémie', money(primeP)], 
-            ['Náhrada za dovolenou (' + r2(C.vacHoursTotal) + 'h)', money(vacPay)],
-            ['Náhrada – Lékař (' + r2(C.docHoursTotal) + 'h)', money(docPay)],
-            ['Motivační bonus', money(annB)], ['Fond vedoucího', money(fund)],
-            ['Srážka Stravenky ('+mc+' ks)', '− ' + money(mealDeduct)], ['Srážka Obědy ('+lc+' ks)', '− ' + money(lunchDeduct)]
-        ].map(([k, v]) => `<div class="payline"><span>${k}</span><span><b>${v}</b></span></div>`).join('');
+            ['Přesčasy (' + r2(totalOT) + ' h)', money(otExtraPay)], 
+            ['Prémie', money(primeP)]
+        ];
+
+        if (C.vacHoursTotal > 0) {
+            payLines.push(['Náhrada za dovolenou (' + r2(C.vacHoursTotal) + 'h)', money(vacPay)]);
+        }
+        if (C.docHoursTotal > 0) {
+            payLines.push(['Náhrada – Lékař (' + r2(C.docHoursTotal) + 'h)', money(docPay)]);
+        }
+
+        payLines.push(
+            ['Motivační bonus', money(annB)], 
+            ['Fond vedoucího', money(fund)],
+            ['Srážka Stravenky ('+mc+' ks)', '− ' + money(mealDeduct)], 
+            ['Srážka Obědy ('+lc+' ks)', '− ' + money(lunchDeduct)]
+        );
+
+        $('pay').innerHTML = payLines.map(([k, v]) => `<div class="payline"><span>${k}</span><span><b>${v}</b></span></div>`).join('');
     }
 
     if ($('gross')) $('gross').textContent = '💼 Hrubá mzda: ' + money(gross);
@@ -661,7 +678,13 @@ function renderCalendar() {
             if ((r === 0 && c < start) || day > total) { html += "<td></td>"; continue; }
             const dt = new Date(y, m, day); const key = ymd(dt); const t = state.shifts[key] || "";
             const hasCustom = (state.customHours && state.customHours[key] !== undefined) ? ' ⏱️' : '';
-            html += `<td data-date="${key}" class="${t === '1/2' ? 'V' : (t === 'L/V' ? 'V' : t)} ${selectedDate === key ? 'selected' : ''} ${key === todayKey ? 'today' : ''}">
+            
+            // Mapování CSS třídy pro zachování zelené barvy směn
+            let cssClass = t;
+            if (t === 'L/V') cssClass = 'LV';
+            if (t === '1/2') cssClass = 'HALF';
+
+            html += `<td data-date="${key}" class="${cssClass} ${selectedDate === key ? 'selected' : ''} ${key === todayKey ? 'today' : ''}">
                  <div class="daynum">${day}${isHoliday(dt) ? ' 🎌' : ''}${hasCustom}</div>
                  ${t ? `<span class="badge">${t}</span>` : ''}
                </td>`;
