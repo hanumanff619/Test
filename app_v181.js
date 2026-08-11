@@ -1,5 +1,5 @@
 // ============================================================================
-// Směnářek 1.8.1 – KOMPLETNÍ FULL VERZE (Hanuman & Family Edition + Separated Doc/Vac Fix)
+// Směnářek 1.8.1 – KOMPLETNÍ FULL VERZE (Hanuman & Family Edition - Overtime Fix)
 // ============================================================================
 
 const MEAL_DEDUCT = 40;
@@ -386,6 +386,7 @@ function updateStats() {
 
         if (!t) continue;
         
+        // Zpracování absencí
         if (t === 'V') { 
             vac += 1; 
             vacHoursTotal += (state.mode === '7.75') ? 7.75 : 7.50; 
@@ -416,7 +417,23 @@ function updateStats() {
 
         let curH = (state.customHours && state.customHours[key] !== undefined) ? nval(state.customHours[key]) : baseShiftH;
 
-        if (isH || isWk) autoOT += curH;
+        // NOVÁ LOGIKA PŘESČASŮ (autoOT):
+        // 1. Svátek ve všední den = přesčas
+        if (isH && !isWk) {
+            autoOT += curH;
+        }
+        // 2. Sobota R = 7.50h přesčas
+        if (t === 'R' && isSat(dt)) {
+            autoOT += 7.50;
+        }
+        // 3. Víkend F / FO = 7.50h přesčas
+        if ((t === 'F' || t === 'FO') && isWk) {
+            autoOT += 7.50;
+        }
+        // 4. Víkend F16 = 15.50h přesčas
+        if (t === 'F16' && isWk) {
+            autoOT += 15.50;
+        }
 
         if (t === 'R' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16') {
             if (t === 'F' || t === 'FO' || t === 'F16') {
@@ -610,7 +627,6 @@ function calcPay() {
             transferText = ` (úprava: +${tIn}h / -${tOut}h = ${r2(finalBaseHours)}h)`;
         }
 
-        // Dynamické sestavení řádků výplaty (Dovolená a Lékař se zobrazí jen když mají > 0 h)
         let payLines = [
             ['Základ' + transferText, money(basePay)], 
             ['Odpolední příplatek', money(odpoPay)], 
@@ -679,7 +695,6 @@ function renderCalendar() {
             const dt = new Date(y, m, day); const key = ymd(dt); const t = state.shifts[key] || "";
             const hasCustom = (state.customHours && state.customHours[key] !== undefined) ? ' ⏱️' : '';
             
-            // Mapování CSS třídy pro zachování zelené barvy směn
             let cssClass = t;
             if (t === 'L/V') cssClass = 'LV';
             if (t === '1/2') cssClass = 'HALF';
