@@ -471,11 +471,14 @@ function updateStats() {
     const totalRecognized = hours + vacHours + docHours + unworkedHolHours;
     const autoOT = Math.max(0, totalRecognized - monthFundHours);
     
-    // Celkový výsledek přesčasů pro přehled nahoře
+    // PŘEVODY UPRAVUJÍ PŘESČAS
     const finalOT = autoOT + otIn - otOut;
 
+    // PŘEVODY SE PŘIČÍTAJÍ/ODEČÍTAJÍ OD ZÁKLADNÍCH HODIN (BEZ BONUSŮ A PŘÍPLATKŮ)
+    const paidBaseHours = Math.max(0, hours + otIn - otOut);
+
     if ($('stats')) {
-        $('stats').innerHTML = `R:${rDays} O:${oDays} F:${fDays} D:${dDay} N:${nDay} V:${vacDays} L:${docDays}<br>Odpracováno: <b>${r2(hours)}h</b> / Fond: <b>${monthFundHours}h</b>`;
+        $('stats').innerHTML = `R:${rDays} O:${oDays} F:${fDays} D:${dDay} N:${nDay} V:${vacDays} L:${docDays}<br>Odpracováno (dílna): <b>${r2(hours)}h</b> / Fond: <b>${monthFundHours}h</b>`;
     }
 
     if ($('substats')) {
@@ -485,11 +488,11 @@ function updateStats() {
             `<div class="payline"><span>Noční hodiny (22–6)</span><span><b>${r2(nightH)}</b> h</span></div>`,
             `<div class="payline"><span>Víkendové hodiny</span><span><b>${r2(weekendH)}</b> h</span></div>`,
             `<div class="payline"><span>Přesčas měsíc (nad fond)</span><span><b>${r2(autoOT)}</b> h</span></div>`,
-            `<div class="payline"><span>Převody z/do minula</span><span><b>+${otIn} / -${otOut}</b> h</span></div>`,
-            `<div class="payline" style="color:var(--goodtext)"><span>VÝSLEDNÝ PŘESČAS CELKEM</span><span><b>${r2(finalOT)}</b> h</span></div>`
+            `<div class="payline"><span>Převody (+minulý / -příští)</span><span><b>+${otIn} / -${otOut}</b> h</span></div>`,
+            `<div class="payline" style="color:var(--goodtext)"><span>Celkové zaplacené hodiny (základ)</span><span><b>${r2(paidBaseHours)}</b> h</span></div>`
         ].join('');
     }
-    state._calc = { hours, vacHours, docHours, unworkedHolHours, afterH, nightH, weekendH, vacDays, docDays, holWorkedH, autoOT, finalOT, fDays, monthFundHours };
+    state._calc = { hours, paidBaseHours, vacHours, docHours, unworkedHolHours, afterH, nightH, weekendH, vacDays, docDays, holWorkedH, autoOT, finalOT, fDays, monthFundHours };
     save();
 }
 
@@ -522,13 +525,11 @@ function avgRate() {
 
 function calcPay() {
     const avg = avgRate();
-    const C = state._calc || { hours: 0, vacHours: 0, docHours: 0, unworkedHolHours: 0, afterH: 0, nightH: 0, weekendH: 0, vacDays: 0, docDays: 0, holWorkedH: 0, autoOT: 0, finalOT: 0, fDays: 0, monthFundHours: 0 };
+    const C = state._calc || { hours: 0, paidBaseHours: 0, vacHours: 0, docHours: 0, unworkedHolHours: 0, afterH: 0, nightH: 0, weekendH: 0, vacDays: 0, docDays: 0, holWorkedH: 0, autoOT: 0, finalOT: 0, fDays: 0, monthFundHours: 0 };
     const ymKey = ym(current);
     const effB = nval(state.monthRates[ymKey]) || nval(state.rates['rate_base']) || 148.50;
     
     const manualOT = nval(state.monthOvertime[ymKey]);
-    const otIn = nval(state.monthOTIn[ymKey]);
-    const otOut = nval(state.monthOTOut[ymKey]);
 
     const r = {
         b: effB,
@@ -541,13 +542,17 @@ function calcPay() {
     const vacPay = avg * C.vacHours;                          
     const unworkedHolPay = avg * C.unworkedHolHours;           
     const docPay = avg * C.docHours;                          
-    const basePay = r.b * C.hours;                            
+
+    // MZDA ČASOVÁ PŘÍMÁ = ZÁKLADNÍ HODINOVKA × (ODPRACOVÁNO + PŘEVOD Z MINULA - PŘEVOD DO PŘÍŠTĚ)
+    const basePay = r.b * C.paidBaseHours;                            
+    
     const holWorkedPay = avg * 1.25 * C.holWorkedH;           
     
-    // Přesčas celkem = Měsíční přesčas + Převod z minulého - Převod do dalšího + Ruční zadání
+    // Přesčas 25% (čistě příplatek)
     const totalOT = C.finalOT + r.nep;
     const otExtraPay = (avg * 0.25) * totalOT;                 
     
+    // Příplatky zůstávají čistě podle reálně odpracovaných odpoledních/nočních/víkendových směn na dílně
     const weekPay = r.v * C.weekendH;                         
     const nightPay = r.n * C.nightH;                          
     const odpoPay = r.o * C.afterH;                           
@@ -615,7 +620,7 @@ function calcPay() {
             ['Čerpání dovolené', money(vacPay)],
             ['Svátek - náhrada', money(unworkedHolPay)],
             ['Náhrada - návštěva lékaře', money(docPay)],
-            ['Mzda časová přímá', money(basePay)],
+            ['Mzda časová přímá (' + r2(C.paidBaseHours) + 'h)', money(basePay)],
             ['Práce ve svátek 125%', money(holWorkedPay)],
             ['Příplatek za přesčas 25% (' + r2(totalOT) + 'h)', money(otExtraPay)],
             ['Přípl. za práci v So Ne 40,-', money(weekPay)],
