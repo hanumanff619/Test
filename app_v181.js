@@ -37,7 +37,7 @@ const MAP775 = {
 let state = JSON.parse(localStorage.getItem('smenarek_state_v181') || '{}');
 
 if (!state.shifts) state.shifts = {};
-if (!state.dayHours) state.dayHours = {}; // Ručně odpracované hodiny na datum YYYY-MM-DD
+if (!state.dayHours) state.dayHours = {}; // Hodiny na konkrétní den
 if (!state.rates) state.rates = {};
 if (!state.mode) state.mode = '12';
 if (state.bonus_pct == null) state.bonus_pct = 10;
@@ -98,6 +98,7 @@ function save() {
     localStorage.setItem('smenarek_state_v181', JSON.stringify(state));
 }
 
+// Ranní R od 6:00 nemá ŽÁDNOU noční hodinu
 function rShiftNightH(dt) {
     return 0;
 }
@@ -415,10 +416,11 @@ function updateStats() {
                 hours += curH;
                 if (t === 'O') afterH += 7.75;
 
+                // RJ MÁ 15 MINUT NOČNÍ (0.25h), R MÁ 0
                 if (t === 'RJ') {
                     nightH += 0.25;
                 } else {
-                    nightH += rShiftNightH(dt);
+                    nightH += rShiftNightH(dt); // vrací 0
                 }
 
                 if (isWk) weekendH += curH;
@@ -515,7 +517,7 @@ function calcPay() {
     const currentMonth = current.getMonth();
     let annB = 0;
     if (currentMonth === 5 || currentMonth === 10) {
-        annB = 7000; // UPRAVENO NA 7000 Kč
+        annB = 7000;
     } else {
         annB = nval(state.annual_bonus);
     }
@@ -639,7 +641,6 @@ function renderCalendar() {
             const t = state.shifts[key] || "";
             const cssClass = t === '1/2' ? 'HALF' : t;
             
-            // Kontrola, zda je u dne ručně upravený čas
             const isCustom = (state.dayHours && state.dayHours[key] != null);
             const customVal = isCustom ? state.dayHours[key] : null;
 
@@ -658,10 +659,11 @@ function renderCalendar() {
         td.onclick = () => {
             const dateStr = td.dataset.date;
             
-            // DRUHÝ KLIK NA STEJNÉ POLÍČKO = VYROVNÁNÍ HODIN PRO DANEJ DEN
+            // KLIK NA JIŽ OZNAČENÝ DEN = VYROVNÁNÍ HODIN PRO DANEJ DEN
             if (selectedDate === dateStr && state.shifts[dateStr]) {
                 const curH = getDayHours(dateStr, state.shifts[dateStr]);
-                const inputVal = prompt(`Upravit odpracované hodiny pro ${dateStr} (směna ${state.shifts[dateStr]}):`, curH);
+                const inputVal = prompt(`Upravit odpracované hodiny pro ${dateStr} (směna ${state.shifts[dateStr]}):\n(Nechte prázdné pro návrat k původním hodinám)`, curH);
+                
                 if (inputVal !== null) {
                     if (inputVal.trim() === '') {
                         delete state.dayHours[dateStr];
@@ -670,9 +672,13 @@ function renderCalendar() {
                     }
                     save();
                     renderCalendar();
+                } else {
+                    // STISK ZRUŠIT = Odznačí políčko, takže další klik skočí na další směnu
+                    selectedDate = null;
+                    renderCalendar();
                 }
             } else {
-                // PRVNÍ KLIK = ZMĚNA KÓDU SMĚNY
+                // KLIK NA NOVÝ DEN = ZMĚNA KÓDU SMĚNY
                 selectedDate = dateStr;
                 setShift(dateStr, nextCode(state.shifts[dateStr] || ''));
             }
