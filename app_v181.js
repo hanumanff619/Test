@@ -463,9 +463,16 @@ function updateStats() {
         }
     }
 
+    const ymKey = ym(current);
+    const otIn = nval(state.monthOTIn[ymKey]);
+    const otOut = nval(state.monthOTOut[ymKey]);
+
     const monthFundHours = workDaysCount * 7.50;
     const totalRecognized = hours + vacHours + docHours + unworkedHolHours;
     const autoOT = Math.max(0, totalRecognized - monthFundHours);
+    
+    // Celkový výsledek přesčasů pro přehled nahoře
+    const finalOT = autoOT + otIn - otOut;
 
     if ($('stats')) {
         $('stats').innerHTML = `R:${rDays} O:${oDays} F:${fDays} D:${dDay} N:${nDay} V:${vacDays} L:${docDays}<br>Odpracováno: <b>${r2(hours)}h</b> / Fond: <b>${monthFundHours}h</b>`;
@@ -477,10 +484,12 @@ function updateStats() {
             `<div class="payline"><span>Odpolední hodiny</span><span><b>${r2(afterH)}</b> h</span></div>`,
             `<div class="payline"><span>Noční hodiny (22–6)</span><span><b>${r2(nightH)}</b> h</span></div>`,
             `<div class="payline"><span>Víkendové hodiny</span><span><b>${r2(weekendH)}</b> h</span></div>`,
-            `<div class="payline"><span>Přesčas nad fond</span><span><b>${r2(autoOT)}</b> h</span></div>`
+            `<div class="payline"><span>Přesčas měsíc (nad fond)</span><span><b>${r2(autoOT)}</b> h</span></div>`,
+            `<div class="payline"><span>Převody z/do minula</span><span><b>+${otIn} / -${otOut}</b> h</span></div>`,
+            `<div class="payline" style="color:var(--goodtext)"><span>VÝSLEDNÝ PŘESČAS CELKEM</span><span><b>${r2(finalOT)}</b> h</span></div>`
         ].join('');
     }
-    state._calc = { hours, vacHours, docHours, unworkedHolHours, afterH, nightH, weekendH, vacDays, docDays, holWorkedH, autoOT, fDays, monthFundHours };
+    state._calc = { hours, vacHours, docHours, unworkedHolHours, afterH, nightH, weekendH, vacDays, docDays, holWorkedH, autoOT, finalOT, fDays, monthFundHours };
     save();
 }
 
@@ -513,7 +522,7 @@ function avgRate() {
 
 function calcPay() {
     const avg = avgRate();
-    const C = state._calc || { hours: 0, vacHours: 0, docHours: 0, unworkedHolHours: 0, afterH: 0, nightH: 0, weekendH: 0, vacDays: 0, docDays: 0, holWorkedH: 0, autoOT: 0, fDays: 0, monthFundHours: 0 };
+    const C = state._calc || { hours: 0, vacHours: 0, docHours: 0, unworkedHolHours: 0, afterH: 0, nightH: 0, weekendH: 0, vacDays: 0, docDays: 0, holWorkedH: 0, autoOT: 0, finalOT: 0, fDays: 0, monthFundHours: 0 };
     const ymKey = ym(current);
     const effB = nval(state.monthRates[ymKey]) || nval(state.rates['rate_base']) || 148.50;
     
@@ -535,8 +544,8 @@ function calcPay() {
     const basePay = r.b * C.hours;                            
     const holWorkedPay = avg * 1.25 * C.holWorkedH;           
     
-    // Přesčas = Měsíční + Převod z minula - Převod do příště + Ruční
-    const totalOT = (C.autoOT + otIn - otOut) + r.nep;
+    // Přesčas celkem = Měsíční přesčas + Převod z minulého - Převod do dalšího + Ruční zadání
+    const totalOT = C.finalOT + r.nep;
     const otExtraPay = (avg * 0.25) * totalOT;                 
     
     const weekPay = r.v * C.weekendH;                         
