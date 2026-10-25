@@ -39,6 +39,7 @@ if (state.cafeteria_ok == null) state.cafeteria_ok = false;
 
 if (!state.monthFunds) state.monthFunds = {};
 if (!state.monthRates) state.monthRates = {};
+if (!state.monthOvertime) state.monthOvertime = {}; // Přesčas podle měsíce
 
 if (!state.avg) {
     state.avg = {
@@ -90,9 +91,9 @@ function save() {
     localStorage.setItem('smenarek_state_v181', JSON.stringify(state));
 }
 
+// Ranní R od 6:00 nemá žádné noční hodiny
 function rShiftNightH(dt) {
-    if (!dt) return 0;
-    return isW(dt) ? 1 : (35 / 60);
+    return 0;
 }
 
 // Namedays
@@ -169,7 +170,7 @@ function updateHeader() {
     if (t !== '—') {
         if (t === 'R') {
             if (state.mode === '7.75') label = 'R 05:45–14:01';
-            else label = isW(today) ? 'R 05:00–13:15' : 'R 05:25–13:56';
+            else label = isW(today) ? 'R 05:00–13:15' : 'R 06:00–14:31';
         } else if (t === 'RJ') {
             label = 'RJ 05:45–14:16';
         } else if (t === 'F') {
@@ -206,7 +207,7 @@ function bindInputsOnce() {
     if (window._inputsBound) return;
     window._inputsBound = true;
 
-    ['rate_base', 'rate_odpo', 'rate_noc', 'rate_vikend', 'rate_nepretrzity'].forEach(id => {
+    ['rate_base', 'rate_odpo', 'rate_noc', 'rate_vikend'].forEach(id => {
         const el = $(id);
         if (!el) return;
         if (id === 'rate_noc' && !state.rates[id]) state.rates[id] = 25;
@@ -218,6 +219,17 @@ function bindInputsOnce() {
             calcPay();
         };
     });
+
+    // Přesčas manuál vázaný na měsíc
+    const otEl = $('rate_nepretrzity');
+    if (otEl) {
+        otEl.oninput = e => {
+            const key = ym(current);
+            state.monthOvertime[key] = e.target.value === '' ? null : nval(e.target.value);
+            save();
+            calcPay();
+        };
+    }
 
     if ($('bonus_pct')) {
         $('bonus_pct').value = state.bonus_pct;
@@ -334,6 +346,7 @@ function refreshMonthScopedInputs() {
     const key = ym(current);
     if ($('fund_bonus_month')) $('fund_bonus_month').value = state.monthFunds[key] ?? '';
     if ($('rate_base_month')) $('rate_base_month').value = state.monthRates[key] ?? '';
+    if ($('rate_nepretrzity')) $('rate_nepretrzity').value = state.monthOvertime[key] ?? '';
 }
 
 function updateStats() {
@@ -380,7 +393,7 @@ function updateStats() {
                 hours += hVal;
                 if (t === 'O') afterH += 7.75;
 
-                // RJ od 5:45 započítá 15 minut (0.25h) do noční
+                // RJ od 5:45 započítá přesně 15 minut (0.25h) do noční, klasická R od 6:00 má 0
                 if (t === 'RJ') {
                     nightH += 0.25;
                 } else {
@@ -455,13 +468,14 @@ function calcPay() {
     const C = state._calc || { hours: 0, afterH: 0, nightH: 0, weekendH: 0, vac: 0, holWorkedH: 0, autoOT: 0, fDays: 0 };
     const ymKey = ym(current);
     const effB = nval(state.monthRates[ymKey]) || nval(state.rates['rate_base']) || 148.50;
+    const manualOT = nval(state.monthOvertime[ymKey]); // Měsíční manuální přesčas
 
     const r = {
         b: effB,
         o: nval(state.rates['rate_odpo']) || 10,
         n: nval(state.rates['rate_noc']) || 25,
         v: nval(state.rates['rate_vikend']) || 35,
-        nep: nval(state.rates['rate_nepretrzity'])
+        nep: manualOT
     };
 
     const basePay = r.b * C.hours;
