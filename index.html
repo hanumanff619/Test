@@ -37,19 +37,19 @@
     .daynum{position:absolute;top:.35rem;right:.35rem;color:var(--muted);font-size:.85rem}
     
     /* Badge - pevná velikost */
-    .badge{display:inline-block;margin-top:1.2rem;width:28px;height:28px;line-height:26px;text-align:center;border-radius:8px;font-size:.85rem;background:rgba(0,0,0,0.3);font-weight:700}
+    .badge{display:inline-block;margin-top:1.2rem;width:34px;height:28px;line-height:26px;text-align:center;border-radius:8px;font-size:.85rem;background:rgba(0,0,0,0.3);font-weight:700}
     
-    /* Barvy směn (R i RJ maji modrou) */
+    /* Barvy směn */
     .D, .R, .RJ {background:linear-gradient(180deg,rgba(108,192,255,.15),rgba(108,192,255,.10))}
     .N {background:linear-gradient(180deg,rgba(255,188,104,.15),rgba(255,188,104,.10))}
     .V {background:linear-gradient(180deg,rgba(119,214,139,.14),rgba(119,214,139,.10))}
     .O {background:linear-gradient(180deg,rgba(255,122,200,.15),rgba(255,122,200,.10))}
-    /* Ferrari ranní */
     .F {background:linear-gradient(180deg,rgba(255,77,77,.20),rgba(255,77,77,.10))}
-    /* Ferrari odpolední (FO) */
     .FO {background:linear-gradient(180deg,rgba(255,77,77,0.30),rgba(255,77,77,0.15))}
-    /* Brutální 16ka (F16) */
     .F16 {background:linear-gradient(180deg,rgba(255,0,0,0.40),rgba(255,0,0,0.25)); box-shadow:inset 0 0 10px rgba(255,0,0,0.4)}
+    /* Doplňující směny LD a 1/2 */
+    .LD {background:linear-gradient(180deg,rgba(0,230,204,0.20),rgba(0,230,204,0.10))}
+    .HALF {background:linear-gradient(180deg,rgba(255,153,0,0.25),rgba(255,153,0,0.12))}
     
     /* Texty badge */
     .D .badge, .R .badge, .RJ .badge { color: #6cc0ff; border: 1px solid #6cc0ff; }
@@ -58,6 +58,8 @@
     .V .badge { color: #9ff3cd; border: 1px solid #9ff3cd; }
     .F .badge, .FO .badge { color: #ff4d4d; border: 1px solid #ff4d4d; }
     .F16 .badge { color: #ff0000; border: 2px solid #ff0000; text-shadow: 0 0 5px #ff0000}
+    .LD .badge { color: #00e6cc; border: 1px solid #00e6cc; }
+    .HALF .badge { color: #ff9900; border: 1px solid #ff9900; }
 
     .row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
     .chip{padding:.3rem .7rem;border:1px solid rgba(255,255,255,.12);border-radius:99px;background:transparent;color:var(--ink);cursor:pointer;font-weight:600}
@@ -80,6 +82,9 @@
     .subtle{color:var(--muted);margin-top:.2rem}
     hr{border:none;height:1px;background:rgba(255,255,255,.1);margin:1rem 0}
     .sig{display:flex;justify-content:center;align-items:center;gap:.4rem;opacity:.9;font-size:1.05rem;margin-top:1.5rem}
+    .hours-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(100px, 1fr));gap:.5rem;margin-top:.5rem}
+    .hours-grid div{font-size:.8rem}
+    .hours-grid input{padding:.3rem .4rem;font-size:.85rem}
   </style>
 </head>
 <body>
@@ -104,6 +109,25 @@
   <aside class="card">
     <h3 style="margin-top:0">Statistiky a Výplata</h3>
     <div id="stats"></div><div id="substats"></div><hr>
+    
+    <details>
+      <summary style="cursor:pointer;font-weight:700;color:var(--accent);margin-bottom:.5rem">⚙️ Ruční úprava hodin směn</summary>
+      <div class="hours-grid">
+        <div><label>R (h)</label><input id="h_R" type="number" step="0.25"></div>
+        <div><label>RJ (h)</label><input id="h_RJ" type="number" step="0.25"></div>
+        <div><label>O (h)</label><input id="h_O" type="number" step="0.25"></div>
+        <div><label>D (h)</label><input id="h_D" type="number" step="0.25"></div>
+        <div><label>N (h)</label><input id="h_N" type="number" step="0.25"></div>
+        <div><label>F (h)</label><input id="h_F" type="number" step="0.25"></div>
+        <div><label>FO (h)</label><input id="h_FO" type="number" step="0.25"></div>
+        <div><label>F16 (h)</label><input id="h_F16" type="number" step="0.25"></div>
+        <div><label>V (h)</label><input id="h_V" type="number" step="0.25"></div>
+        <div><label>LD (h)</label><input id="h_LD" type="number" step="0.25"></div>
+        <div><label>1/2 (h)</label><input id="h_HALF" type="number" step="0.25"></div>
+      </div>
+    </details>
+    <hr>
+
     <label>Základní hodinovka (Kč/h)</label><input id="rate_base" type="number" step="0.01">
     <div class="row"><div style="flex:1"><label>Specifický základ měsíc</label><input id="rate_base_month" type="number" step="0.01"></div></div>
     <div class="row">
@@ -138,6 +162,6 @@
     <div class="sig"><span style="color:#6cc0ff;font-weight:700">Hanuman & Gemini ® </span></div>
   </aside>
 </div>
-<script src="app_v181.js" defer></script>
+<script src="app_v181.js?v=3" defer></script>
 </body>
 </html>
