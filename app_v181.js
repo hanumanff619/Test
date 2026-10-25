@@ -37,9 +37,9 @@ const MAP775 = {
 let state = JSON.parse(localStorage.getItem('smenarek_state_v181') || '{}');
 
 if (!state.shifts) state.shifts = {};
+if (!state.dayHours) state.dayHours = {}; // Ručně odpracované hodiny na datum YYYY-MM-DD
 if (!state.rates) state.rates = {};
 if (!state.mode) state.mode = '12';
-if (!state.customHours) state.customHours = {};
 if (state.bonus_pct == null) state.bonus_pct = 10;
 if (state.annual_bonus == null) state.annual_bonus = 0;
 if (state.cafeteria_ok == null) state.cafeteria_ok = false;
@@ -202,6 +202,7 @@ function setShift(dateStr, t, rerender = true) {
     if (!valid.includes(t)) return;
     if (t === '') {
         delete state.shifts[dateStr];
+        delete state.dayHours[dateStr];
     } else {
         state.shifts[dateStr] = t;
     }
@@ -209,11 +210,7 @@ function setShift(dateStr, t, rerender = true) {
     if (rerender) renderCalendar();
 }
 
-function getShiftHours(t) {
-    const key = t === '1/2' ? 'HALF' : t;
-    if (state.customHours && state.customHours[key] != null && state.customHours[key] !== '') {
-        return nval(state.customHours[key]);
-    }
+function getDefaultShiftHours(t) {
     if (t === 'RJ') return 8.0;
     if (t === '1/2') return 4.0;
     if (t === 'F16') return 16.25;
@@ -223,22 +220,16 @@ function getShiftHours(t) {
     return 0;
 }
 
+function getDayHours(dateStr, t) {
+    if (state.dayHours && state.dayHours[dateStr] != null) {
+        return nval(state.dayHours[dateStr]);
+    }
+    return getDefaultShiftHours(t);
+}
+
 function bindInputsOnce() {
     if (window._inputsBound) return;
     window._inputsBound = true;
-
-    // Ruční úprava hodin
-    ['R', 'RJ', 'O', 'D', 'N', 'F', 'FO', 'F16', 'V', 'LD', 'HALF'].forEach(code => {
-        const el = $('h_' + code);
-        if (!el) return;
-        el.value = state.customHours[code] ?? '';
-        el.oninput = () => {
-            state.customHours[code] = el.value === '' ? null : nval(el.value);
-            save();
-            updateStats();
-            calcPay();
-        };
-    });
 
     ['rate_base', 'rate_odpo', 'rate_noc', 'rate_vikend'].forEach(id => {
         const el = $(id);
@@ -403,7 +394,7 @@ function updateStats() {
 
         if (!t) continue;
         
-        let curH = getShiftHours(t);
+        let curH = getDayHours(key, t);
 
         if (t === 'V' || t === 'LD') { 
             vac++; 
@@ -516,7 +507,7 @@ function calcPay() {
     const totalOT = C.autoOT + r.nep;
     const otExtraPay = (avg * 0.25) * totalOT;
     const primeP = basePay * (nval(state.bonus_pct) / 100);
-    const vH = getShiftHours('V');
+    const vH = getDefaultShiftHours('V');
     const vacPay = vH * avg * C.vac;
     
     const hlukPay = C.fDays * (7.75 * 6);
@@ -524,7 +515,7 @@ function calcPay() {
     const currentMonth = current.getMonth();
     let annB = 0;
     if (currentMonth === 5 || currentMonth === 10) {
-        annB = 8000;
+        annB = 7000; // UPRAVENO NA 7000 Kč
     } else {
         annB = nval(state.annual_bonus);
     }
@@ -647,10 +638,15 @@ function renderCalendar() {
             const key = ymd(dt);
             const t = state.shifts[key] || "";
             const cssClass = t === '1/2' ? 'HALF' : t;
+            
+            // Kontrola, zda je u dne ručně upravený čas
+            const isCustom = (state.dayHours && state.dayHours[key] != null);
+            const customVal = isCustom ? state.dayHours[key] : null;
 
             html += `<td data-date="${key}" class="${cssClass} ${selectedDate === key ? 'selected' : ''} ${key === todayKey ? 'today' : ''}">
                  <div class="daynum">${day}${isHoliday(dt) ? ' 🎌' : ''}</div>
                  ${t ? `<span class="badge">${t}</span>` : ''}
+                 ${isCustom ? `<span class="edited-hours">${customVal}h</span><span class="edited-icon">⏱️</span>` : ''}
                </td>`;
             day++;
         }
@@ -660,8 +656,26 @@ function renderCalendar() {
     $('cal').innerHTML = html + "</tbody>";
     $('cal').querySelectorAll('td[data-date]').forEach(td => {
         td.onclick = () => {
-            selectedDate = td.dataset.date;
-            setShift(td.dataset.date, nextCode(state.shifts[td.dataset.date] || ''));
+            const dateStr = td.dataset.date;
+            
+            // DRUHÝ KLIK NA STEJNÉ POLÍČKO = VYROVNÁNÍ HODIN PRO DANEJ DEN
+            if (selectedDate === dateStr && state.shifts[dateStr]) {
+                const curH = getDayHours(dateStr, state.shifts[dateStr]);
+                const inputVal = prompt(`Upravit odpracované hodiny pro ${dateStr} (směna ${state.shifts[dateStr]}):`, curH);
+                if (inputVal !== null) {
+                    if (inputVal.trim() === '') {
+                        delete state.dayHours[dateStr];
+                    } else {
+                        state.dayHours[dateStr] = nval(inputVal);
+                    }
+                    save();
+                    renderCalendar();
+                }
+            } else {
+                // PRVNÍ KLIK = ZMĚNA KÓDU SMĚNY
+                selectedDate = dateStr;
+                setShift(dateStr, nextCode(state.shifts[dateStr] || ''));
+            }
         };
     });
     updateStats();
