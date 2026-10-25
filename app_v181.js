@@ -403,6 +403,7 @@ function updateStats() {
 
     let dDay = 0, nDay = 0, vacDays = 0, docDays = 0, hours = 0, nightH = 0, afterH = 0, weekendH = 0, holWorkedH = 0, rDays = 0, oDays = 0, fDays = 0;
     let vacHours = 0, docHours = 0, unworkedHolHours = 0;
+    let continuousH = 0; // Celkové hodiny v nepřetržitém provozu (D + N)
     let workDaysCount = 0;
 
     for (let i = 1; i <= last.getDate(); i++) {
@@ -451,11 +452,11 @@ function updateStats() {
                 if (isH) holWorkedH += curH;
             }
         } else if (t === 'D') {
-            dDay++; hours += curH; afterH += 3.75;
+            dDay++; hours += curH; afterH += 3.75; continuousH += curH;
             if (isWk) weekendH += curH; 
             if (isH) holWorkedH += curH;
         } else if (t === 'N') {
-            nDay++; hours += curH; afterH += 4; nightH += 7.25;
+            nDay++; hours += curH; afterH += 4; nightH += 7.25; continuousH += curH;
             if (isWk) weekendH += curH; 
             if (isH) holWorkedH += curH;
             const nextDay = new Date(y, m, i + 1);
@@ -471,10 +472,7 @@ function updateStats() {
     const totalRecognized = hours + vacHours + docHours + unworkedHolHours;
     const autoOT = Math.max(0, totalRecognized - monthFundHours);
     
-    // PŘEVODY UPRAVUJÍ PŘESČAS
     const finalOT = autoOT + otIn - otOut;
-
-    // PŘEVODY SE PŘIČÍTAJÍ/ODEČÍTAJÍ OD ZÁKLADNÍCH HODIN (BEZ BONUSŮ A PŘÍPLATKŮ)
     const paidBaseHours = Math.max(0, hours + otIn - otOut);
 
     if ($('stats')) {
@@ -487,12 +485,13 @@ function updateStats() {
             `<div class="payline"><span>Odpolední hodiny</span><span><b>${r2(afterH)}</b> h</span></div>`,
             `<div class="payline"><span>Noční hodiny (22–6)</span><span><b>${r2(nightH)}</b> h</span></div>`,
             `<div class="payline"><span>Víkendové hodiny</span><span><b>${r2(weekendH)}</b> h</span></div>`,
+            `<div class="payline"><span>Nepřetržitý provoz (D+N)</span><span><b>${r2(continuousH)}</b> h</span></div>`,
             `<div class="payline"><span>Přesčas měsíc (nad fond)</span><span><b>${r2(autoOT)}</b> h</span></div>`,
             `<div class="payline"><span>Převody (+minulý / -příští)</span><span><b>+${otIn} / -${otOut}</b> h</span></div>`,
             `<div class="payline" style="color:var(--goodtext)"><span>Celkové zaplacené hodiny (základ)</span><span><b>${r2(paidBaseHours)}</b> h</span></div>`
         ].join('');
     }
-    state._calc = { hours, paidBaseHours, vacHours, docHours, unworkedHolHours, afterH, nightH, weekendH, vacDays, docDays, holWorkedH, autoOT, finalOT, fDays, monthFundHours };
+    state._calc = { hours, paidBaseHours, vacHours, docHours, unworkedHolHours, afterH, nightH, weekendH, continuousH, vacDays, docDays, holWorkedH, autoOT, finalOT, fDays, monthFundHours };
     save();
 }
 
@@ -525,7 +524,7 @@ function avgRate() {
 
 function calcPay() {
     const avg = avgRate();
-    const C = state._calc || { hours: 0, paidBaseHours: 0, vacHours: 0, docHours: 0, unworkedHolHours: 0, afterH: 0, nightH: 0, weekendH: 0, vacDays: 0, docDays: 0, holWorkedH: 0, autoOT: 0, finalOT: 0, fDays: 0, monthFundHours: 0 };
+    const C = state._calc || { hours: 0, paidBaseHours: 0, vacHours: 0, docHours: 0, unworkedHolHours: 0, afterH: 0, nightH: 0, weekendH: 0, continuousH: 0, vacDays: 0, docDays: 0, holWorkedH: 0, autoOT: 0, finalOT: 0, fDays: 0, monthFundHours: 0 };
     const ymKey = ym(current);
     const effB = nval(state.monthRates[ymKey]) || nval(state.rates['rate_base']) || 148.50;
     
@@ -543,20 +542,19 @@ function calcPay() {
     const unworkedHolPay = avg * C.unworkedHolHours;           
     const docPay = avg * C.docHours;                          
 
-    // MZDA ČASOVÁ PŘÍMÁ = ZÁKLADNÍ HODINOVKA × (ODPRACOVÁNO + PŘEVOD Z MINULA - PŘEVOD DO PŘÍŠTĚ)
     const basePay = r.b * C.paidBaseHours;                            
-    
     const holWorkedPay = avg * 1.25 * C.holWorkedH;           
     
-    // Přesčas 25% (čistě příplatek)
     const totalOT = C.finalOT + r.nep;
     const otExtraPay = (avg * 0.25) * totalOT;                 
     
-    // Příplatky zůstávají čistě podle reálně odpracovaných odpoledních/nočních/víkendových směn na dílně
     const weekPay = r.v * C.weekendH;                         
     const nightPay = r.n * C.nightH;                          
     const odpoPay = r.o * C.afterH;                           
     const hlukPay = C.fDays * (7.75 * 6);                     
+
+    // Příplatek za práci v nepřetržitém režimu (4 Kč/h za směny D a N)
+    const continuousPay = C.continuousH * 4;
 
     const currentMonth = current.getMonth();
     let annB = 0;
@@ -582,6 +580,7 @@ function calcPay() {
             if (isW(dt)) mc += 2; 
             else { mc += 1; if(!noL) lc++; else mc++; } 
         } else if (t === 'R' || t === 'RJ' || t === 'O' || t === 'F' || t === 'FO' || t === 'F16' || t === '1/2') { 
+            // Příplatek za ranní směny v sobotu
             if ((t === 'R' || t === 'RJ') && isSat(dt)) satB += 500;
             
             if (t === 'FO') {
@@ -608,7 +607,7 @@ function calcPay() {
     const mealDeduct = mc * MEAL_DEDUCT;                      
     const lunchDeduct = lc * LUNCH_DEDUCT;                    
     
-    const gross = basePay + odpoPay + nightPay + weekPay + holWorkedPay + otExtraPay + primeP + vacPay + docPay + unworkedHolPay + annB + fund + satB + hlukPay;
+    const gross = basePay + odpoPay + nightPay + weekPay + holWorkedPay + otExtraPay + primeP + vacPay + docPay + unworkedHolPay + annB + fund + satB + hlukPay + continuousPay;
 
     const soc = Math.round(gross * 0.065);
     const hlth = Math.round(gross * 0.045);
@@ -627,7 +626,8 @@ function calcPay() {
             ['Přípl. za práci v noci - 30', money(nightPay)],
             ['Přípl. za II. směnu - 10', money(odpoPay)],
             ['Přípl. za obtížné prac. podmínky', money(hlukPay)],
-            ['Přípl. v nepřetržitém / Soboty R', money(satB)],
+            ['Přípl. za práci v nepřetržitém režimu', money(continuousPay)],
+            ['Přípl. za ranní směny v sobotu', money(satB)],
             ['Odměna z fondu vedoucího', money(fund)],
             ['Prémie k časové mzdě přímé (' + (state.bonus_pct || 0) + '%)', money(primeP)],
             ['Motivační odměna', money(annB)],
@@ -641,7 +641,7 @@ function calcPay() {
     $('meal').textContent = '🍽️ Stravenky: ' + mc + ' ks — ' + money(mc * 110);
     const cafVal = state.cafeteria_ok ? '1 000,00 Kč' : '0,00 Kč';
     if ($('cafInfo')) {
-        $('cafInfo').innerHTML = `🎁 Motivační odměna - cafeteria: <b>${cafVal}</b>`;
+        $('cafInfo').innerHTML = `🎁 Cafeterie: <b>${cafVal}</b>`;
     }
     state.yearSummary[current.getFullYear()] = state.yearSummary[current.getFullYear()] || {};
     state.yearSummary[current.getFullYear()][current.getMonth()] = { gross, net, hours: C.hours, mealCount: mc, mealValue: mc * 110, ts: Date.now() };
