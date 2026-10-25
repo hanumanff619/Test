@@ -12,7 +12,6 @@
       --bg:#0c1d33; --panel:#122e52; --ink:#eaf2ff; --muted:#a9c3e6; --accent:#6cc0ff;
       --sel:#1e78d799; --good:#5bd39a; --goodtext:#9ff3cd; --field:#0b213d; --border:#1f3f66;
     }
-    /* Módy barev */
     body.mode8 { --accent:#b38cff; --sel:#7b3ff299; }
     body.mode775 { --accent:#d38cff; --sel:#a63ff299; } 
 
@@ -36,10 +35,8 @@
     .calendar td.today:not(.selected){box-shadow:inset 0 0 0 2px var(--accent)}
     .daynum{position:absolute;top:.35rem;right:.35rem;color:var(--muted);font-size:.85rem}
     
-    /* Badge - pevná velikost */
     .badge{display:inline-block;margin-top:1.2rem;width:34px;height:28px;line-height:26px;text-align:center;border-radius:8px;font-size:.85rem;background:rgba(0,0,0,0.3);font-weight:700}
     
-    /* Ikonka stopek u upraveného dne */
     .edited-icon {
       position: absolute; bottom: .35rem; right: .35rem; font-size: .75rem; opacity: .9;
     }
@@ -47,7 +44,6 @@
       position: absolute; bottom: .35rem; left: .35rem; font-size: .7rem; color: var(--accent); font-weight: 700;
     }
 
-    /* Barvy směn */
     .D, .R, .RJ {background:linear-gradient(180deg,rgba(108,192,255,.15),rgba(108,192,255,.10))}
     .N {background:linear-gradient(180deg,rgba(255,188,104,.15),rgba(255,188,104,.10))}
     .V, .L {background:linear-gradient(180deg,rgba(119,214,139,.14),rgba(119,214,139,.10))}
@@ -58,7 +54,6 @@
     .LD {background:linear-gradient(180deg,rgba(0,230,204,0.20),rgba(0,230,204,0.10))}
     .HALF {background:linear-gradient(180deg,rgba(255,153,0,0.25),rgba(255,153,0,0.12))}
     
-    /* Texty badge */
     .D .badge, .R .badge, .RJ .badge { color: #6cc0ff; border: 1px solid #6cc0ff; }
     .N .badge { color: #ffbc68; border: 1px solid #ffbc68; }
     .O .badge { color: #ff7ac8; border: 1px solid #ff7ac8; }
@@ -130,6 +125,12 @@
         <div style="flex:1"><label>Motivační</label><input id="annual_bonus" type="number" step="1"></div>
     </div>
     <label>Fond vedoucího</label><input id="fund_bonus_month" type="number">
+    
+    <div class="row">
+        <div style="flex:1"><label>Převod z minulého měsíce (h)</label><input id="ot_prev_in" type="number" step="0.25"></div>
+        <div style="flex:1"><label>Převod do dalšího měsíce (h)</label><input id="ot_prev_out" type="number" step="0.25"></div>
+    </div>
+
     <hr>
     <div class="row">
         <div style="flex:1"><label>M-1 Čistá</label><input id="avg_net1" type="number" step="0.01"></div>
@@ -148,6 +149,6 @@
     <div class="sig"><span style="color:#6cc0ff;font-weight:700">Hanuman & Gemini ® </span></div>
   </aside>
 </div>
-<script src="app_v181.js?v=10" defer></script>
+<script src="app_v181.js?v=11" defer></script>
 </body>
 </html>
