@@ -31,35 +31,28 @@
     .calendar{width:100%;border-collapse:collapse}
     .calendar th,.calendar td{border:1px solid rgba(255,255,255,.08);padding:.35rem;vertical-align:top}
     .calendar th{color:var(--muted);font-weight:600;text-align:center;background:rgba(14,38,70,.45)}
-    .calendar td{height:92px;position:relative;background:rgba(15,39,72,.26);transition:background .15s ease;cursor:pointer}
+    .calendar td{height:92px;position:relative;background:rgba(15,39,72,.26);transition:background .15s ease}
     .calendar td.selected{background:var(--sel)!important;box-shadow:inset 0 0 0 2px #75c7ff99}
     .calendar td.today:not(.selected){box-shadow:inset 0 0 0 2px var(--accent)}
     .daynum{position:absolute;top:.35rem;right:.35rem;color:var(--muted);font-size:.85rem}
     
-    /* Badge - pevná velikost */
-    .badge{display:inline-block;margin-top:1.2rem;width:34px;height:28px;line-height:26px;text-align:center;border-radius:8px;font-size:.85rem;background:rgba(0,0,0,0.3);font-weight:700}
-    .custom-h{display:block;font-size:.7rem;color:var(--accent);font-weight:700;margin-top:.1rem}
-
+    /* Badge - pevná velikost aby to nelítalo */
+    .badge{display:inline-block;margin-top:1.2rem;width:28px;height:28px;line-height:26px;text-align:center;border-radius:8px;font-size:.85rem;background:rgba(0,0,0,0.3);font-weight:700}
+    
     /* Barvy směn */
-    .D, .R, .RJ {background:linear-gradient(180deg,rgba(108,192,255,.15),rgba(108,192,255,.10))}
+    .D, .R {background:linear-gradient(180deg,rgba(108,192,255,.15),rgba(108,192,255,.10))}
     .N {background:linear-gradient(180deg,rgba(255,188,104,.15),rgba(255,188,104,.10))}
     .V {background:linear-gradient(180deg,rgba(119,214,139,.14),rgba(119,214,139,.10))}
     .O {background:linear-gradient(180deg,rgba(255,122,200,.15),rgba(255,122,200,.10))}
+    /* Ferrari červená */
     .F {background:linear-gradient(180deg,rgba(255,77,77,.20),rgba(255,77,77,.10))}
-    .FO {background:linear-gradient(180deg,rgba(255,77,77,0.30),rgba(255,77,77,0.15))}
-    .F16 {background:linear-gradient(180deg,rgba(255,0,0,0.40),rgba(255,0,0,0.25)); box-shadow:inset 0 0 10px rgba(255,0,0,0.4)}
-    .LD {background:linear-gradient(180deg,rgba(0,230,204,0.20),rgba(0,230,204,0.10))}
-    .HALF {background:linear-gradient(180deg,rgba(255,153,0,0.25),rgba(255,153,0,0.12))}
     
     /* Texty badge */
-    .D .badge, .R .badge, .RJ .badge { color: #6cc0ff; border: 1px solid #6cc0ff; }
+    .D .badge, .R .badge { color: #6cc0ff; border: 1px solid #6cc0ff; }
     .N .badge { color: #ffbc68; border: 1px solid #ffbc68; }
     .O .badge { color: #ff7ac8; border: 1px solid #ff7ac8; }
     .V .badge { color: #9ff3cd; border: 1px solid #9ff3cd; }
-    .F .badge, .FO .badge { color: #ff4d4d; border: 1px solid #ff4d4d; }
-    .F16 .badge { color: #ff0000; border: 2px solid #ff0000; text-shadow: 0 0 5px #ff0000}
-    .LD .badge { color: #00e6cc; border: 1px solid #00e6cc; }
-    .HALF .badge { color: #ff9900; border: 1px solid #ff9900; }
+    .F .badge { color: #ff4d4d; border: 1px solid #ff4d4d; }
 
     .row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
     .chip{padding:.3rem .7rem;border:1px solid rgba(255,255,255,.12);border-radius:99px;background:transparent;color:var(--ink);cursor:pointer;font-weight:600}
@@ -106,7 +99,6 @@
   <aside class="card">
     <h3 style="margin-top:0">Statistiky a Výplata</h3>
     <div id="stats"></div><div id="substats"></div><hr>
-
     <label>Základní hodinovka (Kč/h)</label><input id="rate_base" type="number" step="0.01">
     <div class="row"><div style="flex:1"><label>Specifický základ měsíc</label><input id="rate_base_month" type="number" step="0.01"></div></div>
     <div class="row">
@@ -137,10 +129,11 @@
     <div id="net" class="result">💵 Čistá mzda: 0,00 Kč</div>
     <div id="meal" class="result">🍽️ Stravenky: 0 ks</div>
     <div id="cafInfo" class="result">🎁 Cafeterie: 0,00 Kč</div>
+    <hr><button class="chip" id="toggleAudit">Audit</button><div id="audit" style="display:none"></div>
     <div id="yearSummary"></div>
-    <div class="sig"><span style="color:#6cc0ff;font-weight:700">Hanuman & Gemini ® </span></div>
+    <div class="sig"><span style="color:#6cc0ff;font-weight:700">Hanuman & Gemini AI v1.8.1</span></div>
   </aside>
 </div>
-<script src="app_v181.js?v=4" defer></script>
+<script src="app_v181.js" defer></script>
 </body>
 </html>
